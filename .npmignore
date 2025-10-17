@@ -1,0 +1,14 @@
+# Don't publish these to npm
+src/
+cli/
+tests/
+tsconfig.json
+.git
+.gitignore
+.github
+*.test.ts
+*.spec.ts
+.DS_Store
+node_modules
+.env
+.env.*

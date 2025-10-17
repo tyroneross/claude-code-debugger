@@ -1,0 +1,5 @@
+# Example .npmrc configuration for installing from GitHub Packages
+# Copy this to ~/.npmrc and replace YOUR_GITHUB_USERNAME and YOUR_GITHUB_TOKEN
+
+@YOUR_GITHUB_USERNAME:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
