@@ -31,10 +31,10 @@ Then install:
 
 ```bash
 # Project-specific installation
-npm install @YOUR_GITHUB_USERNAME/claude-memory
+install @tyroneross/claude-memory
 
 # Global installation for CLI access anywhere
-npm install -g @YOUR_GITHUB_USERNAME/claude-memory
+install -g @tyroneross/claude-memory
 ```
 
 ### Get a GitHub Token
