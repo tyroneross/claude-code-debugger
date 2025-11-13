@@ -11,13 +11,18 @@ import { suggestPatterns, extractPatterns } from '../src/pattern-extractor';
 import { previewAuditMining, mineAuditTrail } from '../src/audit-miner';
 import { displayConfig } from '../src/config';
 import { checkMemory } from '../src/retrieval';
+import {
+  batchReviewIncomplete,
+  batchExtractPatterns,
+  batchCleanup
+} from '../src/batch-operations';
 
 const program = new Command();
 
 program
   .name('claude-memory')
   .description('Debugging memory system - never solve the same bug twice')
-  .version('1.0.0');
+  .version('1.2.0');
 
 // Debug command
 program
@@ -151,6 +156,78 @@ program
         });
       } else {
         await previewAuditMining(days);
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Batch operations command
+program
+  .command('batch')
+  .description('Batch operations for maintenance')
+  .option('--incomplete', 'Review incomplete incidents interactively')
+  .option('--extract-patterns', 'Extract patterns from existing incidents')
+  .option('--cleanup', 'Clean up old sessions and low-quality incidents')
+  .option('--category <category>', 'Filter by category (for pattern extraction)')
+  .option('--min-incidents <number>', 'Minimum incidents for pattern (default: 3)', '3')
+  .option('--older-than <days>', 'Age threshold for cleanup (default: 90)', '90')
+  .option('--dry-run', 'Preview cleanup without making changes')
+  .option('--shared', 'Use shared memory mode')
+  .action(async (options: {
+    incomplete?: boolean;
+    extractPatterns?: boolean;
+    cleanup?: boolean;
+    category?: string;
+    minIncidents?: string;
+    olderThan?: string;
+    dryRun?: boolean;
+    shared?: boolean;
+  }) => {
+    try {
+      if (options.shared) {
+        process.env.CLAUDE_MEMORY_MODE = 'shared';
+      }
+
+      // Determine config
+      const config = undefined; // Will use default from env
+
+      // Run requested batch operations
+      if (options.incomplete) {
+        await batchReviewIncomplete(config);
+      }
+
+      if (options.extractPatterns) {
+        const patterns = await batchExtractPatterns({
+          category: options.category,
+          minIncidents: parseInt(options.minIncidents || '3', 10),
+          config
+        });
+        console.log(`✨ Extracted ${patterns.length} patterns`);
+      }
+
+      if (options.cleanup) {
+        await batchCleanup({
+          olderThanDays: parseInt(options.olderThan || '90', 10),
+          dryRun: options.dryRun,
+          config
+        });
+      }
+
+      // If no options specified, show help
+      if (!options.incomplete && !options.extractPatterns && !options.cleanup) {
+        console.log('\n💡 Batch Operations');
+        console.log('═══════════════════════════════════════════════\n');
+        console.log('Available batch operations:\n');
+        console.log('  --incomplete         Review incomplete incidents interactively');
+        console.log('  --extract-patterns   Extract patterns from similar incidents');
+        console.log('  --cleanup            Clean up old sessions and low-quality incidents\n');
+        console.log('Examples:\n');
+        console.log('  claude-code-debugger batch --incomplete');
+        console.log('  claude-code-debugger batch --extract-patterns --category react-hooks');
+        console.log('  claude-code-debugger batch --cleanup --older-than 90 --dry-run\n');
       }
 
     } catch (error: any) {

@@ -2,7 +2,7 @@
  * Debugging Memory System - Retrieval Layer
  *
  * Finds similar incidents and patterns based on symptom description.
- * Uses simple keyword matching for MVP (embeddings can be added later).
+ * Uses multi-strategy search: exact → tag → fuzzy → semantic (optional).
  */
 
 import type {
@@ -13,6 +13,7 @@ import type {
   MemoryConfig
 } from './types';
 import { loadAllIncidents, loadAllPatterns } from './storage';
+import natural from 'natural';
 
 /**
  * Default retrieval configuration
@@ -23,6 +24,16 @@ const DEFAULT_CONFIG: RetrievalConfig = {
   temporal_preference: 90,          // Prefer last 90 days
   include_unvalidated: true         // Include unvalidated (guardian rarely runs in this project)
 };
+
+/**
+ * Enhanced search result with match type and highlights
+ */
+export interface SearchResult {
+  incident: Incident;
+  score: number;
+  matchType: 'exact' | 'tag' | 'fuzzy' | 'category' | 'semantic';
+  highlights: string[];
+}
 
 /**
  * Check memory for similar incidents
@@ -239,4 +250,138 @@ export async function getRecentIncidents(days: number = 7, config?: MemoryConfig
   return allIncidents
     .filter(incident => incident.timestamp >= cutoff)
     .sort((a, b) => b.timestamp - a.timestamp);
+}
+
+/**
+ * Enhanced multi-strategy search
+ *
+ * Strategy order: exact → tag → fuzzy → category
+ * Each strategy adds results with appropriate confidence scores
+ */
+export async function enhancedSearch(
+  query: string,
+  options?: { threshold?: number; maxResults?: number; memoryConfig?: MemoryConfig }
+): Promise<SearchResult[]> {
+
+  const threshold = options?.threshold ?? 0.5;
+  const maxResults = options?.maxResults ?? 10;
+  const allIncidents = await loadAllIncidents(options?.memoryConfig);
+
+  if (allIncidents.length === 0) {
+    return [];
+  }
+
+  const queryLower = query.toLowerCase();
+  const queryWords = extractKeywords(queryLower);
+  const results: SearchResult[] = [];
+  const seenIds = new Set<string>();
+
+  // STRATEGY 1: EXACT MATCH (score: 1.0)
+  // Check if symptom description contains query (case-insensitive)
+  for (const incident of allIncidents) {
+    if (seenIds.has(incident.incident_id)) continue;
+
+    const symptomLower = incident.symptom.toLowerCase();
+    if (symptomLower.includes(queryLower)) {
+      results.push({
+        incident,
+        score: 1.0,
+        matchType: 'exact',
+        highlights: [incident.symptom]
+      });
+      seenIds.add(incident.incident_id);
+    }
+  }
+
+  // STRATEGY 2: TAG MATCH (score: 0.9)
+  // Check if any tags match normalized query
+  for (const incident of allIncidents) {
+    if (seenIds.has(incident.incident_id)) continue;
+
+    const normalizedTags = incident.tags.map(tag => tag.toLowerCase());
+    const matchedTags = normalizedTags.filter(tag =>
+      queryWords.some(word => tag.includes(word) || word.includes(tag))
+    );
+
+    if (matchedTags.length > 0) {
+      results.push({
+        incident,
+        score: 0.9,
+        matchType: 'tag',
+        highlights: incident.tags.filter(tag =>
+          matchedTags.includes(tag.toLowerCase())
+        )
+      });
+      seenIds.add(incident.incident_id);
+    }
+  }
+
+  // STRATEGY 3: FUZZY MATCH (score: 0.7-0.85)
+  // Use Jaro-Winkler distance for similar strings
+  const fuzzyThreshold = 0.7;
+  for (const incident of allIncidents) {
+    if (seenIds.has(incident.incident_id)) continue;
+
+    const symptomScore = fuzzyMatch(queryLower, incident.symptom.toLowerCase(), fuzzyThreshold);
+    const rootCauseScore = fuzzyMatch(
+      queryLower,
+      incident.root_cause.description.toLowerCase(),
+      fuzzyThreshold
+    );
+
+    const maxScore = Math.max(symptomScore, rootCauseScore);
+    if (maxScore >= fuzzyThreshold) {
+      const highlight = symptomScore >= rootCauseScore
+        ? incident.symptom
+        : incident.root_cause.description;
+
+      results.push({
+        incident,
+        score: maxScore,
+        matchType: 'fuzzy',
+        highlights: [highlight]
+      });
+      seenIds.add(incident.incident_id);
+    }
+  }
+
+  // STRATEGY 4: CATEGORY MATCH (score: 0.6)
+  // If we have top matches, find similar categories
+  if (results.length > 0) {
+    const topCategories = new Set(
+      results.slice(0, 3).map(r => r.incident.root_cause.category)
+    );
+
+    for (const incident of allIncidents) {
+      if (seenIds.has(incident.incident_id)) continue;
+
+      if (topCategories.has(incident.root_cause.category)) {
+        results.push({
+          incident,
+          score: 0.6,
+          matchType: 'category',
+          highlights: [incident.root_cause.category]
+        });
+        seenIds.add(incident.incident_id);
+      }
+    }
+  }
+
+  // Sort by score descending and return top results
+  return results
+    .filter(r => r.score >= threshold)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults);
+}
+
+/**
+ * Fuzzy string matching using Jaro-Winkler distance
+ * Returns score between 0 and 1 if above threshold, 0 otherwise
+ */
+function fuzzyMatch(query: string, text: string, threshold: number): number {
+  const distance = natural.JaroWinklerDistance(
+    query.toLowerCase(),
+    text.toLowerCase()
+  );
+  return distance >= threshold ? distance : 0;
 }

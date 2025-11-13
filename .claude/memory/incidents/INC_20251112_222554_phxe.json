@@ -1,0 +1,50 @@
+{
+  "incident_id": "INC_20251112_222554_phxe",
+  "timestamp": 1762986352195,
+  "symptom": "Logger throwing errors in production",
+  "root_cause": {
+    "description": "Missing error boundary around logger calls",
+    "category": "error-handling",
+    "confidence": 0.85,
+    "code_snippet": "logger.error(new Error(\"test\"));",
+    "file": "lib/logger.ts",
+    "line_range": [
+      40,
+      45
+    ]
+  },
+  "fix": {
+    "approach": "Added try-catch wrapper around all logger methods",
+    "changes": [
+      {
+        "file": "lib/logger.ts",
+        "lines_changed": 12,
+        "change_type": "modify",
+        "summary": "Added error boundaries"
+      }
+    ],
+    "time_to_fix": 25
+  },
+  "verification": {
+    "status": "verified",
+    "regression_tests_passed": true,
+    "user_journey_tested": false,
+    "success_criteria_met": true
+  },
+  "tags": [
+    "logger",
+    "error-handling",
+    "production"
+  ],
+  "files_changed": [
+    "lib/logger.ts"
+  ],
+  "agent_used": "coder",
+  "completeness": {
+    "symptom": true,
+    "root_cause": false,
+    "fix": true,
+    "verification": true,
+    "quality_score": 0.6250000000000001
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "@tyroneross/claude-code-debugger",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Debugging memory system for Claude Code - never solve the same bug twice",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,11 +33,12 @@
     "type": "git",
     "url": "https://github.com/tyroneross/claude-code-debugger.git"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "dependencies": {
-    "commander": "^12.0.0"
+    "@types/natural": "^5.1.5",
+    "@types/prompts": "^2.4.9",
+    "commander": "^12.0.0",
+    "natural": "^8.1.0",
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

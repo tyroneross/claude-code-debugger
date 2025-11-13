@@ -7,7 +7,11 @@ A debugging memory system for Claude Code that automatically learns from past in
 ## Features
 
 - **Incident Tracking**: Store complete debugging incidents with symptoms, root causes, fixes, and verification
-- **Pattern Recognition**: Automatically detect recurring problems and extract reusable patterns
+- **Interactive Verification** ✨ NEW: Guided prompts to ensure high-quality incident documentation
+- **Quality Scoring**: Automatic calculation of incident completeness (0-100%)
+- **Auto-Pattern Extraction** ✨ NEW: Automatically extracts patterns after storing 3+ similar incidents
+- **Enhanced Search** ✨ NEW: Multi-strategy search (exact → tag → fuzzy → semantic)
+- **Batch Operations** ✨ NEW: Review incomplete incidents, extract patterns, cleanup old data
 - **Smart Retrieval**: Find similar incidents using keyword-based similarity matching
 - **Audit Trail Mining**: Recover incidents from `.claude/audit` files when manual storage is missed
 - **Dual Storage Modes**:
@@ -71,6 +75,11 @@ claude-memory mine --days 30
 
 # Store mined incidents
 claude-memory mine --days 30 --store
+
+# Batch operations (v1.2.0) ✨ NEW
+claude-memory batch --incomplete              # Review incomplete incidents
+claude-memory batch --extract-patterns        # Extract patterns from existing data
+claude-memory batch --cleanup --older-than 90 # Clean up old sessions
 ```
 
 ### Programmatic Usage
@@ -131,6 +140,53 @@ const incidents = await mineAuditTrail({
   min_confidence: 0.7
 });
 ```
+
+### Interactive Verification (New in v1.2.0)
+
+Use interactive prompts to ensure high-quality incident documentation:
+
+```typescript
+import { storeIncident, generateIncidentId } from '@tyroneross/claude-code-debugger';
+
+// Create a minimal incident
+const incident = {
+  incident_id: generateIncidentId(),
+  timestamp: Date.now(),
+  symptom: 'Search results not displaying',
+  root_cause: {
+    description: 'React component issue',
+    category: 'react',
+    confidence: 0.7
+  },
+  // ... minimal details
+};
+
+// Store with interactive mode - system will prompt for missing details
+const result = await storeIncident(incident, {
+  interactive: true,  // Enable guided prompts
+  validate_schema: true
+});
+
+// The system will:
+// 1. Check root cause quality (min 50 chars)
+// 2. Ask about verification status
+// 3. Suggest tags based on symptom
+// 4. Calculate quality score
+// 5. Show feedback and confirm storage
+```
+
+**Quality Scoring:**
+- Root Cause Analysis: 30%
+- Fix Details: 30%
+- Verification: 20%
+- Documentation (tags, etc): 20%
+
+**Quality Targets:**
+- 🌟 Excellent: ≥75%
+- ✅ Good: ≥50%
+- ⚠️ Fair: <50%
+
+See [Interactive Verification Guide](./docs/INTERACTIVE_VERIFICATION.md) for details.
 
 ## Configuration
 

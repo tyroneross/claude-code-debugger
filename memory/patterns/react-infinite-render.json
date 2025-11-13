@@ -1,0 +1,54 @@
+{
+  "pattern_id": "PATTERN_REACT_INFINITE_RENDER",
+  "category": "React Performance",
+  "name": "React Hook Dependency Issues",
+  "symptoms": [
+    "infinite re-render",
+    "useEffect running continuously",
+    "React hooks infinite loop",
+    "component keeps rendering",
+    "maximum update depth exceeded",
+    "too many re-renders"
+  ],
+  "description": "Component enters infinite render loop due to incorrect hook dependencies or state updates within effects",
+  "indicators": [
+    "useEffect without dependency array",
+    "State updates inside useEffect that affect dependencies",
+    "Object/array literals in dependency arrays",
+    "Missing useMemo/useCallback for complex dependencies"
+  ],
+  "fixes": {
+    "standard": {
+      "approach": "Add proper dependencies and memoize objects",
+      "steps": [
+        "1. Check useEffect dependency arrays",
+        "2. Wrap object/array dependencies in useMemo",
+        "3. Use useCallback for function dependencies",
+        "4. Move state updates outside of effects when possible"
+      ],
+      "code_examples": [
+        {
+          "wrong": "useEffect(() => { setState({...}); }, [state])",
+          "correct": "useEffect(() => { setState(prev => ({...prev, ...})); }, [])"
+        },
+        {
+          "wrong": "useEffect(() => {...}, [{ id: 1 }])",
+          "correct": "const dep = useMemo(() => ({ id: 1 }), []); useEffect(() => {...}, [dep])"
+        }
+      ]
+    }
+  },
+  "prevention": [
+    "Always use ESLint react-hooks/exhaustive-deps rule",
+    "Prefer stable references (useCallback, useMemo)",
+    "Use functional setState when updating based on previous state",
+    "Avoid object/array literals in dependency arrays"
+  ],
+  "similar_patterns": [
+    "PATTERN_REACT_STALE_CLOSURE",
+    "PATTERN_REACT_MEMORY_LEAK"
+  ],
+  "confidence": 0.9,
+  "extracted_date": "2025-01-11",
+  "incident_count": 15
+}

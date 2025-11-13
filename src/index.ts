@@ -40,20 +40,29 @@ export {
   getMemoryStats
 } from './storage';
 
+// Interactive Verification
+export {
+  buildIncidentInteractive,
+  calculateQualityScore,
+  generateQualityFeedback
+} from './interactive-verifier';
+
 // Retrieval Operations
 export {
   checkMemory,
   getFullIncident,
   searchByTags,
-  getRecentIncidents
+  getRecentIncidents,
+  enhancedSearch
 } from './retrieval';
+export type { SearchResult } from './retrieval';
 
 // Main Debugging Wrapper
 // Note: These will be added when we copy debug-with-memory.ts
 export { debugWithMemory, storeDebugIncident, getMemoryStatus } from './debug-wrapper';
 
 // Pattern Extraction
-export { extractPatterns, suggestPatterns } from './pattern-extractor';
+export { extractPatterns, suggestPatterns, autoExtractPatternIfReady } from './pattern-extractor';
 
 // Audit Trail Mining
 export { mineAuditTrail, previewAuditMining } from './audit-miner';

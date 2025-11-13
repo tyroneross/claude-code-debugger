@@ -42,6 +42,9 @@ export interface Incident {
   // Memory & Retrieval
   similarity_score?: number;        // When retrieved (0-1)
   pattern_id?: string;              // Associated pattern
+  quality_score?: number;           // Overall quality (0-1)
+  embedding?: number[];             // Semantic embedding for search
+  patternized?: boolean;            // Whether included in extracted pattern
 
   // Durability Tracking
   durability?: DurabilityTracking;  // 30-day stability

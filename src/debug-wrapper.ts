@@ -8,6 +8,7 @@
 import type { Incident, RetrievalResult, Pattern } from './types';
 import { checkMemory } from './retrieval';
 import { storeIncident, generateIncidentId, getMemoryStats } from './storage';
+import { autoExtractPatternIfReady } from './pattern-extractor';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -200,6 +201,19 @@ export async function storeDebugIncident(
       console.log('✅ Verification passed: File exists on disk');
     } else {
       console.warn('⚠️  Verification failed: File not found on disk');
+    }
+
+    // Auto-extract patterns if ready
+    console.log('\n🔍 Checking for pattern extraction opportunities...');
+    const pattern = await autoExtractPatternIfReady(incident);
+
+    if (pattern) {
+      console.log(`✨ Auto-extracted pattern: ${pattern.name}`);
+      console.log(`📊 Based on ${pattern.usage_history.total_uses} similar incidents`);
+      console.log(`🎯 Pattern ID: ${pattern.pattern_id}`);
+      console.log(`✅ Success rate: ${(pattern.success_rate * 100).toFixed(0)}%`);
+    } else {
+      console.log('ℹ️  Not enough similar incidents yet for pattern extraction');
     }
 
     // Clean up session

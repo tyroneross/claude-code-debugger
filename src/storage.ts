@@ -10,18 +10,43 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig } from './types';
 import { getMemoryPaths } from './config';
+import { buildIncidentInteractive, calculateQualityScore } from './interactive-verifier';
 
 /**
  * Store an incident in memory
  */
 export async function storeIncident(
   incident: Incident,
-  options: StorageOptions & { config?: MemoryConfig } = {}
+  options: StorageOptions & { config?: MemoryConfig; interactive?: boolean } = {}
 ): Promise<{ incident_id: string; file_path: string }> {
+
+  let finalIncident = incident;
+
+  // Use interactive mode if requested
+  if (options.interactive) {
+    finalIncident = await buildIncidentInteractive(incident);
+  }
+
+  // Calculate quality score if not already set
+  if (!finalIncident.completeness?.quality_score) {
+    const qualityScore = calculateQualityScore(finalIncident);
+
+    if (!finalIncident.completeness) {
+      finalIncident.completeness = {
+        symptom: !!finalIncident.symptom && finalIncident.symptom.length >= 20,
+        root_cause: !!finalIncident.root_cause?.description && finalIncident.root_cause.description.length >= 50,
+        fix: !!finalIncident.fix?.approach && (finalIncident.fix.changes?.length || 0) > 0,
+        verification: finalIncident.verification?.status === 'verified',
+        quality_score: qualityScore
+      };
+    } else {
+      finalIncident.completeness.quality_score = qualityScore;
+    }
+  }
 
   // Validate if requested
   if (options.validate_schema) {
-    const validation = validateIncident(incident);
+    const validation = validateIncident(finalIncident);
     if (!validation.valid) {
       throw new Error(`Invalid incident: ${validation.errors.join(', ')}`);
     }
@@ -35,20 +60,23 @@ export async function storeIncident(
   await fs.mkdir(INCIDENTS_DIR, { recursive: true });
 
   // Generate filename
-  const filename = `${incident.incident_id}.json`;
+  const filename = `${finalIncident.incident_id}.json`;
   const filepath = path.join(INCIDENTS_DIR, filename);
 
   // Write to file
   await fs.writeFile(
     filepath,
-    JSON.stringify(incident, null, 2),
+    JSON.stringify(finalIncident, null, 2),
     'utf-8'
   );
 
-  console.log(`✅ Incident stored: ${incident.incident_id}`);
+  const qualityEmoji = (finalIncident.completeness.quality_score >= 0.75) ? '🌟' :
+                       (finalIncident.completeness.quality_score >= 0.5) ? '✅' : '⚠️';
+
+  console.log(`${qualityEmoji} Incident stored: ${finalIncident.incident_id} (quality: ${(finalIncident.completeness.quality_score * 100).toFixed(0)}%)`);
 
   return {
-    incident_id: incident.incident_id,
+    incident_id: finalIncident.incident_id,
     file_path: filepath
   };
 }

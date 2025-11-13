@@ -1,0 +1,51 @@
+{
+  "incident_id": "INC_20251112_222554_nwo3",
+  "timestamp": 1762986353195,
+  "symptom": "API endpoint returns 500 error",
+  "root_cause": {
+    "description": "Unhandled promise rejection in database query",
+    "category": "api",
+    "confidence": 0.95,
+    "code_snippet": "const result = await db.query(sql);",
+    "file": "app/api/users/route.ts",
+    "line_range": [
+      25,
+      30
+    ]
+  },
+  "fix": {
+    "approach": "Wrapped database calls in try-catch with proper error handling",
+    "changes": [
+      {
+        "file": "app/api/users/route.ts",
+        "lines_changed": 8,
+        "change_type": "modify",
+        "summary": "Added error handling"
+      }
+    ],
+    "time_to_fix": 15
+  },
+  "verification": {
+    "status": "verified",
+    "regression_tests_passed": true,
+    "user_journey_tested": true,
+    "success_criteria_met": true
+  },
+  "tags": [
+    "api",
+    "database",
+    "error-handling",
+    "promise"
+  ],
+  "files_changed": [
+    "app/api/users/route.ts"
+  ],
+  "agent_used": "coder",
+  "completeness": {
+    "symptom": true,
+    "root_cause": false,
+    "fix": true,
+    "verification": true,
+    "quality_score": 0.7000000000000002
+  }
+}

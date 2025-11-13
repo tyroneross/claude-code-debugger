@@ -342,6 +342,82 @@ function generatePatternDescription(category: string, incidents: Incident[]): st
 }
 
 /**
+ * Auto-extract pattern if enough similar incidents exist
+ * Called automatically after storing an incident
+ */
+export async function autoExtractPatternIfReady(
+  newIncident: Incident,
+  options: {
+    minSimilar?: number;
+    minQuality?: number;
+    config?: MemoryConfig;
+  } = {}
+): Promise<Pattern | null> {
+
+  const {
+    minSimilar = 3,
+    minQuality = 0.75,
+    config
+  } = options;
+
+  // Step 1: Find similar incidents (same category, confidence >0.7)
+  const allIncidents = await loadAllIncidents(config);
+  const category = newIncident.root_cause.category;
+
+  const similarIncidents = allIncidents.filter(inc =>
+    inc.root_cause.category === category &&
+    inc.root_cause.confidence >= 0.7 &&
+    !inc.patternized // Don't include incidents already in patterns
+  );
+
+  // Step 2: Check if we have enough similar incidents
+  if (similarIncidents.length < minSimilar) {
+    return null;
+  }
+
+  // Step 3: Calculate commonality and quality
+  const commonality = calculateCommonality(similarIncidents);
+
+  // Step 4: Validate quality score
+  if (commonality.score < minQuality) {
+    console.log(`   📊 Commonality score: ${(commonality.score * 100).toFixed(0)}% (need ${(minQuality * 100).toFixed(0)}%)`);
+    return null;
+  }
+
+  // Step 5: Create pattern candidate
+  const candidate: PatternCandidate = {
+    category,
+    incidents: similarIncidents,
+    commonality_score: commonality.score,
+    tags_overlap: commonality.common_tags,
+    files_overlap: commonality.common_files
+  };
+
+  // Step 6: Check if pattern already exists
+  const existingPatterns = await loadAllPatterns(config);
+  const patternId = generatePatternId(category, 'common_fix');
+  const exists = existingPatterns.some(p => p.pattern_id === patternId);
+
+  if (exists) {
+    return null; // Pattern already extracted
+  }
+
+  // Step 7: Create and store pattern
+  const pattern = createPatternFromIncidents(candidate);
+  await storePattern(pattern, config);
+
+  // Step 8: Tag incidents with pattern_id and mark as patternized
+  const { storeIncident: updateIncident } = await import('./storage');
+  for (const incident of similarIncidents) {
+    incident.pattern_id = pattern.pattern_id;
+    incident.patternized = true;
+    await updateIncident(incident, { config });
+  }
+
+  return pattern;
+}
+
+/**
  * Suggest patterns to extract (dry run)
  */
 export async function suggestPatterns(config?: MemoryConfig): Promise<void> {

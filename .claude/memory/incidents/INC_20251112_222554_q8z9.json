@@ -1,0 +1,51 @@
+{
+  "incident_id": "INC_20251112_222554_q8z9",
+  "timestamp": 1762986354195,
+  "symptom": "Sentry logger not working properly",
+  "root_cause": {
+    "description": "Logger initialization failed due to missing API key",
+    "category": "config",
+    "confidence": 0.9,
+    "code_snippet": "const logger = new Sentry({ apiKey: undefined });",
+    "file": "lib/logger.ts",
+    "line_range": [
+      10,
+      15
+    ]
+  },
+  "fix": {
+    "approach": "Added environment variable validation at startup",
+    "changes": [
+      {
+        "file": "lib/logger.ts",
+        "lines_changed": 5,
+        "change_type": "modify",
+        "summary": "Added API key validation"
+      }
+    ],
+    "time_to_fix": 20
+  },
+  "verification": {
+    "status": "verified",
+    "regression_tests_passed": true,
+    "user_journey_tested": true,
+    "success_criteria_met": true
+  },
+  "tags": [
+    "logger",
+    "sentry",
+    "config",
+    "initialization"
+  ],
+  "files_changed": [
+    "lib/logger.ts"
+  ],
+  "agent_used": "coder",
+  "completeness": {
+    "symptom": true,
+    "root_cause": true,
+    "fix": true,
+    "verification": true,
+    "quality_score": 0.8000000000000002
+  }
+}

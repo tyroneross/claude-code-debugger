@@ -1,0 +1,63 @@
+{
+  "incident_id": "INC_20251112_222754_movb",
+  "timestamp": 1762986474423,
+  "symptom": "React component infinite re-renders due to useEffect dependencies",
+  "session_id": "SESSION_1762986474418_qe6n",
+  "root_cause": {
+    "description": "Missing dependency in useEffect hook causing infinite loop. Component re-renders trigger useEffect which updates state, causing more re-renders.",
+    "file": "components/TrendingTopics.tsx",
+    "line_range": [
+      45,
+      55
+    ],
+    "code_snippet": "useEffect(() => {\n  fetchData();\n}, []); // Missing fetchData dependency",
+    "category": "react-hooks",
+    "confidence": 0.95
+  },
+  "fix": {
+    "approach": "Add missing dependency to useEffect dependency array",
+    "changes": [
+      {
+        "file": "components/TrendingTopics.tsx",
+        "lines_changed": 1,
+        "change_type": "modify",
+        "summary": "Added fetchData to useEffect dependencies"
+      }
+    ],
+    "time_to_fix": 5
+  },
+  "verification": {
+    "status": "verified",
+    "regression_tests_passed": true,
+    "user_journey_tested": true,
+    "success_criteria_met": true,
+    "tests_run": [
+      "components/TrendingTopics.test.tsx"
+    ]
+  },
+  "tags": [
+    "react",
+    "hooks",
+    "useEffect",
+    "dependencies",
+    "infinite-loop"
+  ],
+  "files_changed": [
+    "components/TrendingTopics.tsx"
+  ],
+  "agent_used": "coder",
+  "quality_gates": {
+    "guardian_validated": true,
+    "tested_e2e": true,
+    "tested_from_ui": true,
+    "security_reviewed": false,
+    "architect_reviewed": false
+  },
+  "completeness": {
+    "symptom": true,
+    "root_cause": true,
+    "fix": true,
+    "verification": true,
+    "quality_score": 1
+  }
+}
