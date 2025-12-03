@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "npx @tyroneross/claude-code-debugger mine --days 1 --store 2>/dev/null || true"
+      }
+    ]
+  }
+}

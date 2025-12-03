@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * Claude Memory - CLI Interface
+ * Claude Code Debugger - CLI Interface
  *
  * Command-line tool for debugging memory system
  */
 
 import { Command } from 'commander';
+import { version } from '../package.json';
 import { debugWithMemory, storeDebugIncident, getMemoryStatus } from '../src/debug-wrapper';
 import { suggestPatterns, extractPatterns } from '../src/pattern-extractor';
 import { previewAuditMining, mineAuditTrail } from '../src/audit-miner';
@@ -20,9 +21,9 @@ import {
 const program = new Command();
 
 program
-  .name('claude-memory')
+  .name('claude-code-debugger')
   .description('Debugging memory system - never solve the same bug twice')
-  .version('1.2.0');
+  .version(version);
 
 // Debug command
 program
@@ -41,7 +42,7 @@ program
       });
 
       console.log('\n📝 Session ID:', result.context_used.session_id);
-      console.log('\nAfter fixing, run: claude-memory store\n');
+      console.log('\nAfter fixing, run: claude-code-debugger store\n');
 
     } catch (error: any) {
       console.error('❌ Error:', error.message);

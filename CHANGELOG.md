@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-12-02
+
+### Fixed
+- **Critical**: Removed circular dependency (package listed itself as dependency)
+- **Critical**: Fixed auto-setup not running on install (setup files now included in package)
+- **Critical**: Fixed programmatic API not working (`main` entry now points to correct path)
+- Fixed CLI branding inconsistency (`claude-memory` → `claude-code-debugger`)
+- CLI version now reads from package.json instead of hardcoded value
+- Moved `@types/natural` and `@types/prompts` to devDependencies
+
+### Changed
+- Improved postinstall script reliability
+- Better error handling in auto-setup
+
 ## [1.2.0] - 2025-01-12
 
 ### Added

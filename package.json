@@ -1,9 +1,16 @@
 {
   "name": "@tyroneross/claude-code-debugger",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Debugging memory system for Claude Code - never solve the same bug twice",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "import": "./dist/src/index.js"
+    }
+  },
   "bin": {
     "claude-code-debugger": "dist/cli/index.js"
   },
@@ -16,6 +23,7 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
+    "postinstall": "node dist/src/setup/auto-setup.js || true",
     "test": "echo \"Tests will be added\" && exit 0",
     "clean": "rm -rf dist"
   },
@@ -34,17 +42,23 @@
     "url": "https://github.com/tyroneross/claude-code-debugger.git"
   },
   "dependencies": {
-    "@types/natural": "^5.1.5",
-    "@types/prompts": "^2.4.9",
     "commander": "^12.0.0",
     "natural": "^8.1.0",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
+    "@types/natural": "^5.1.5",
     "@types/node": "^20.0.0",
+    "@types/prompts": "^2.4.9",
     "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "packageManager": "npm@10.x",
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
 }

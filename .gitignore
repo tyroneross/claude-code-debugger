@@ -23,6 +23,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Package manager stores
+.pnpm-store/
+.yarn/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
 # Testing
 coverage/
 .nyc_output/

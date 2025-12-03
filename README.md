@@ -16,36 +16,47 @@ A debugging memory system for Claude Code that automatically learns from past in
 - **Audit Trail Mining**: Recover incidents from `.claude/audit` files when manual storage is missed
 - **Dual Storage Modes**:
   - **Local mode**: Each project has its own `.claude/memory/`
-  - **Shared mode**: All projects share `~/.claude-memory/` for cross-project learning
+  - **Shared mode**: All projects share `~/.claude-code-debugger/` for cross-project learning
 - **CLI Access**: Command-line interface for quick memory operations
 - **Programmatic API**: Import and use in your TypeScript/JavaScript code
 
 ## Installation
 
-### From GitHub Packages
-
-First, configure npm to use GitHub Packages for this scope. Create or edit `~/.npmrc`:
-
 ```bash
-@YOUR_GITHUB_USERNAME:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
+# npm
+npm install @tyroneross/claude-code-debugger
+
+# pnpm
+pnpm add @tyroneross/claude-code-debugger
+
+# yarn
+yarn add @tyroneross/claude-code-debugger
 ```
 
-Then install:
+### Global Installation (for CLI access anywhere)
 
 ```bash
-# Project-specific installation
-install @tyroneross/claude-memory
+# npm
+npm install -g @tyroneross/claude-code-debugger
 
-# Global installation for CLI access anywhere
-install -g @tyroneross/claude-memory
+# pnpm
+pnpm add -g @tyroneross/claude-code-debugger
+
+# yarn
+yarn global add @tyroneross/claude-code-debugger
 ```
 
-### Get a GitHub Token
+### Troubleshooting Installation
 
-1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
-2. Generate new token with `read:packages` scope
-3. Add to `~/.npmrc` as shown above
+**pnpm store mismatch error:**
+If you see `ERR_PNPM_UNEXPECTED_STORE`, your project has a local `.pnpm-store` directory. Fix with:
+```bash
+rm -rf .pnpm-store node_modules
+pnpm install
+```
+
+**npm/pnpm conflict:**
+If your project uses pnpm (has `pnpm-lock.yaml`), always use `pnpm add` instead of `npm install`.
 
 ## Quick Start
 
@@ -53,33 +64,33 @@ install -g @tyroneross/claude-memory
 
 ```bash
 # Check current configuration
-claude-memory config
+claude-code-debugger config
 
 # Show memory statistics
-claude-memory status
+claude-code-debugger status
 
 # Search memory before debugging
-claude-memory debug "Search filters not working"
+claude-code-debugger debug "Search filters not working"
 
 # Search for specific incidents
-claude-memory search "react hooks"
+claude-code-debugger search "react hooks"
 
 # Suggest patterns to extract
-claude-memory patterns
+claude-code-debugger patterns
 
 # Extract and store patterns
-claude-memory patterns --extract
+claude-code-debugger patterns --extract
 
 # Mine audit trail for missed incidents
-claude-memory mine --days 30
+claude-code-debugger mine --days 30
 
 # Store mined incidents
-claude-memory mine --days 30 --store
+claude-code-debugger mine --days 30 --store
 
 # Batch operations (v1.2.0) ✨ NEW
-claude-memory batch --incomplete              # Review incomplete incidents
-claude-memory batch --extract-patterns        # Extract patterns from existing data
-claude-memory batch --cleanup --older-than 90 # Clean up old sessions
+claude-code-debugger batch --incomplete              # Review incomplete incidents
+claude-code-debugger batch --extract-patterns        # Extract patterns from existing data
+claude-code-debugger batch --cleanup --older-than 90 # Clean up old sessions
 ```
 
 ### Programmatic Usage
@@ -91,7 +102,7 @@ import {
   checkMemory,
   extractPatterns,
   mineAuditTrail
-} from '@YOUR_GITHUB_USERNAME/claude-memory';
+} from '@tyroneross/claude-code-debugger';
 
 // Before debugging: Check for similar incidents
 const result = await debugWithMemory("Search filters not working", {
@@ -198,7 +209,7 @@ See [Interactive Verification Guide](./docs/INTERACTIVE_VERIFICATION.md) for det
 - Best for: Project-specific debugging context
 
 **Shared Mode**
-- All projects share `~/.claude-memory/` globally
+- All projects share `~/.claude-code-debugger/` globally
 - Learn across all your projects
 - Best for: Common patterns that appear in multiple projects
 
@@ -206,14 +217,14 @@ See [Interactive Verification Guide](./docs/INTERACTIVE_VERIFICATION.md) for det
 
 ```bash
 # Use shared mode for this command
-claude-memory status --shared
+claude-code-debugger status --shared
 
 # Set shared mode via environment variable
 export CLAUDE_MEMORY_MODE=shared
-claude-memory status
+claude-code-debugger status
 
 # In code
-import { getConfig } from '@YOUR_GITHUB_USERNAME/claude-memory';
+import { getConfig } from '@tyroneross/claude-code-debugger';
 
 const config = getConfig({
   storageMode: 'shared'
@@ -273,9 +284,9 @@ Recover incidents from `.claude/audit/` files:
 Check memory for similar incidents before debugging.
 
 ```bash
-claude-memory debug "Search filters not working"
-claude-memory debug "API timeout" --threshold 0.6
-claude-memory debug "Infinite render loop" --shared
+claude-code-debugger debug "Search filters not working"
+claude-code-debugger debug "API timeout" --threshold 0.6
+claude-code-debugger debug "Infinite render loop" --shared
 ```
 
 **Options:**
@@ -287,8 +298,8 @@ claude-memory debug "Infinite render loop" --shared
 Show memory system statistics.
 
 ```bash
-claude-memory status
-claude-memory status --shared
+claude-code-debugger status
+claude-code-debugger status --shared
 ```
 
 ### `config`
@@ -296,7 +307,7 @@ claude-memory status --shared
 Display current configuration.
 
 ```bash
-claude-memory config
+claude-code-debugger config
 ```
 
 ### `search <query>`
@@ -304,8 +315,8 @@ claude-memory config
 Search memory for incidents matching a query.
 
 ```bash
-claude-memory search "react hooks"
-claude-memory search "API error" --threshold 0.6
+claude-code-debugger search "react hooks"
+claude-code-debugger search "API error" --threshold 0.6
 ```
 
 **Options:**
@@ -318,10 +329,10 @@ Suggest or extract patterns from incidents.
 
 ```bash
 # Preview patterns that could be extracted
-claude-memory patterns
+claude-code-debugger patterns
 
 # Extract and store patterns
-claude-memory patterns --extract
+claude-code-debugger patterns --extract
 ```
 
 **Options:**
@@ -334,10 +345,10 @@ Mine audit trail for incidents not manually stored.
 
 ```bash
 # Preview what would be mined
-claude-memory mine --days 30
+claude-code-debugger mine --days 30
 
 # Mine and store incidents
-claude-memory mine --days 30 --store
+claude-code-debugger mine --days 30 --store
 ```
 
 **Options:**
@@ -427,13 +438,13 @@ import {
   loadPattern,
   loadAllPatterns,
   getMemoryStats
-} from '@YOUR_GITHUB_USERNAME/claude-memory';
+} from '@tyroneross/claude-code-debugger';
 ```
 
 ### Configuration
 
 ```typescript
-import { getConfig, getMemoryPaths } from '@YOUR_GITHUB_USERNAME/claude-memory';
+import { getConfig, getMemoryPaths } from '@tyroneross/claude-code-debugger';
 
 const config = getConfig({
   storageMode: 'shared',
@@ -459,7 +470,7 @@ import type {
   QualityGates,
   RetrievalResult,
   MemoryConfig
-} from '@YOUR_GITHUB_USERNAME/claude-memory';
+} from '@tyroneross/claude-code-debugger';
 ```
 
 ## Directory Structure
@@ -476,7 +487,7 @@ your-project/
 
 ### Shared Mode
 ```
-~/.claude-memory/
+~/.claude-code-debugger/
 ├── incidents/    # All incidents from all projects
 ├── patterns/     # All patterns from all projects
 └── sessions/     # Temporary session files
@@ -490,12 +501,12 @@ Include in your agent prompts:
 
 ```markdown
 Before debugging, check memory:
-- Run: `npx claude-memory debug "symptom description"`
+- Run: `npx claude-code-debugger debug "symptom description"`
 - Review similar incidents and patterns
 - Apply known solutions if confidence is high
 
 After fixing:
-- Store incident with: `npx claude-memory store`
+- Store incident with: `npx claude-code-debugger store`
 - Or use programmatic API from TypeScript
 ```
 
@@ -505,14 +516,14 @@ Set up periodic audit mining:
 
 ```bash
 # Weekly cron job to mine audit trail
-0 0 * * 0 cd /path/to/project && npx claude-memory mine --days 7 --store
+0 0 * * 0 cd /path/to/project && npx claude-code-debugger mine --days 7 --store
 ```
 
 ## Best Practices
 
 ### 1. Always Check Before Debugging
 ```bash
-claude-memory debug "symptom" --threshold 0.7
+claude-code-debugger debug "symptom" --threshold 0.7
 ```
 
 ### 2. Store Complete Incidents
@@ -525,13 +536,13 @@ Include all fields for maximum reuse:
 ### 3. Extract Patterns Regularly
 ```bash
 # Weekly pattern extraction
-claude-memory patterns --extract
+claude-code-debugger patterns --extract
 ```
 
 ### 4. Mine Audit Trail
 ```bash
 # Monthly audit mining
-claude-memory mine --days 30 --store
+claude-code-debugger mine --days 30 --store
 ```
 
 ### 5. Use Shared Mode for Common Issues
@@ -544,8 +555,8 @@ export CLAUDE_MEMORY_MODE=shared
 ### Build from Source
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/claude-memory.git
-cd claude-memory
+git clone https://github.com/tyroneross/claude-code-debugger.git
+cd claude-code-debugger
 npm install
 npm run build
 ```
@@ -587,31 +598,17 @@ This package uses semantic versioning:
 ## Troubleshooting
 
 ### "Cannot find module"
-- Ensure package is installed: `npm list @YOUR_GITHUB_USERNAME/claude-memory`
+- Ensure package is installed: `npm list @tyroneross/claude-code-debugger`
 - Check import paths match package exports
 
 ### "No incidents found"
 - Verify memory directory exists
 - Check storage mode (local vs shared)
-- Run `claude-memory status` to see statistics
+- Run `claude-code-debugger status` to see statistics
 
 ### "Permission denied"
 - Ensure directory permissions for `.claude/memory/`
-- For shared mode: Check `~/.claude-memory/` permissions
-
-### "Invalid token" when installing
-- Verify GitHub token has `read:packages` scope
-- Check `.npmrc` configuration
-- Ensure token is not expired
-
-## Publishing
-
-See [PUBLISHING-GUIDE.md](./PUBLISHING-GUIDE.md) for detailed instructions on:
-- Setting up GitHub repository
-- Generating access tokens
-- Publishing to GitHub Packages
-- Version management
-- Updating the package
+- For shared mode: Check `~/.claude-code-debugger/` permissions
 
 ## Contributing
 
@@ -627,8 +624,8 @@ MIT
 
 ## Support
 
-- Issues: https://github.com/YOUR_GITHUB_USERNAME/claude-memory/issues
-- Discussions: https://github.com/YOUR_GITHUB_USERNAME/claude-memory/discussions
+- Issues: https://github.com/tyroneross/claude-code-debugger/issues
+- Discussions: https://github.com/tyroneross/claude-code-debugger/discussions
 
 ---
 
