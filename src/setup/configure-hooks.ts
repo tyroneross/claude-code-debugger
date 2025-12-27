@@ -30,15 +30,37 @@ export async function configureHooks(projectRoot: string): Promise<boolean> {
   const hooks = settings.hooks as Record<string, unknown[]>;
 
   // Hook: On session stop, auto-mine recent audit trail
-  const stopHooks = (hooks.Stop || []) as Array<{ type?: string; command?: string }>;
-  const hasMemoryHook = stopHooks.some((h) =>
-    h.command?.includes('claude-code-debugger')
-  );
+  // New format uses matcher + hooks array structure
+  type HookEntry = {
+    matcher?: Record<string, unknown>;
+    hooks?: Array<{ type?: string; command?: string }>;
+    // Legacy format fields
+    type?: string;
+    command?: string;
+  };
+
+  const stopHooks = (hooks.Stop || []) as HookEntry[];
+
+  // Check for existing debugger hook in both old and new formats
+  const hasMemoryHook = stopHooks.some((h) => {
+    // Check new format
+    if (h.hooks) {
+      return h.hooks.some(hook => hook.command?.includes('claude-code-debugger'));
+    }
+    // Check legacy format
+    return h.command?.includes('claude-code-debugger');
+  });
 
   if (!hasMemoryHook) {
+    // Use new matcher-based format
     stopHooks.push({
-      type: 'command',
-      command: 'npx @tyroneross/claude-code-debugger mine --days 1 --store 2>/dev/null || true'
+      matcher: {},
+      hooks: [
+        {
+          type: 'command',
+          command: 'npx @tyroneross/claude-code-debugger mine --days 1 --store 2>/dev/null || true'
+        }
+      ]
     });
     hooks.Stop = stopHooks;
     settings.hooks = hooks;

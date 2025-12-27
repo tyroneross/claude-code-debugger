@@ -5,18 +5,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const MEMORY_DEBUG_CMD = `---
-description: "Check debugging memory for similar issues before investigating"
+const DEBUGGER_CMD = `---
+description: "Search past bugs for similar issues before debugging"
 allowedTools: ["Bash", "Read"]
 ---
 
+{{#if ARGUMENTS}}
 ! npx @tyroneross/claude-code-debugger debug "$ARGUMENTS"
 
-Before investigating this issue, I checked the debugging memory for similar past incidents.
+Checked debugging memory for similar past incidents.
 If a match was found with >70% confidence, I'll try that solution first.
+{{else}}
+! npx @tyroneross/claude-code-debugger status
+
+No symptom provided. Showing recent issues from memory.
+Please describe what you're debugging, or pick from a recent issue above.
+{{/if}}
 `;
 
-const MEMORY_STATUS_CMD = `---
+const DEBUGGER_STATUS_CMD = `---
 description: "Show debugging memory statistics"
 allowedTools: ["Bash"]
 ---
@@ -26,14 +33,14 @@ allowedTools: ["Bash"]
 Here's the current state of the debugging memory system.
 `;
 
-const MEMORY_MINE_CMD = `---
-description: "Mine audit trail for debugging incidents"
+const DEBUGGER_SCAN_CMD = `---
+description: "Scan recent sessions for debugging incidents"
 allowedTools: ["Bash"]
 ---
 
 ! npx @tyroneross/claude-code-debugger mine --days 7 --store
 
-Mining the audit trail for recent debugging sessions to add to memory.
+Scanning recent Claude Code sessions for debugging work to add to memory.
 `;
 
 export async function createSlashCommands(projectRoot: string): Promise<number> {
@@ -44,9 +51,9 @@ export async function createSlashCommands(projectRoot: string): Promise<number> 
   }
 
   const commands = [
-    { name: 'memory-debug.md', content: MEMORY_DEBUG_CMD },
-    { name: 'memory-status.md', content: MEMORY_STATUS_CMD },
-    { name: 'memory-mine.md', content: MEMORY_MINE_CMD },
+    { name: 'debugger.md', content: DEBUGGER_CMD },
+    { name: 'debugger-status.md', content: DEBUGGER_STATUS_CMD },
+    { name: 'debugger-scan.md', content: DEBUGGER_SCAN_CMD },
   ];
 
   let created = 0;

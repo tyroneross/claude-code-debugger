@@ -99,10 +99,10 @@ export async function debugWithMemory(
     console.log(`   Context tokens: ${memory.tokens_used}\n`);
 
     memory.incidents.forEach((incident, i) => {
-      console.log(`   Incident ${i + 1}: ${incident.symptom.substring(0, 60)}...`);
-      console.log(`   Root cause: ${incident.root_cause.description.substring(0, 60)}...`);
-      console.log(`   Fix approach: ${incident.fix.approach.substring(0, 60)}...`);
-      console.log(`   Confidence: ${(incident.root_cause.confidence * 100).toFixed(0)}%`);
+      console.log(`   Incident ${i + 1}: ${incident.symptom?.substring(0, 60) ?? 'Unknown'}...`);
+      console.log(`   Root cause: ${incident.root_cause?.description?.substring(0, 60) ?? 'Unknown'}...`);
+      console.log(`   Fix approach: ${incident.fix?.approach?.substring(0, 60) ?? 'Unknown'}...`);
+      console.log(`   Confidence: ${((incident.root_cause?.confidence ?? 0) * 100).toFixed(0)}%`);
 
       // Quality warnings
       if (incident.quality_gates && !incident.quality_gates.guardian_validated) {

@@ -95,9 +95,9 @@ program
       console.log(`\n📊 Found ${result.incidents.length} incidents:\n`);
 
       result.incidents.forEach((inc, i) => {
-        console.log(`${i + 1}. ${inc.symptom.substring(0, 60)}...`);
-        console.log(`   Match: ${(inc.similarity_score! * 100).toFixed(0)}%`);
-        console.log(`   Fix: ${inc.fix.approach.substring(0, 60)}...\n`);
+        console.log(`${i + 1}. ${inc.symptom?.substring(0, 60) ?? 'Unknown'}...`);
+        console.log(`   Match: ${((inc.similarity_score ?? 0) * 100).toFixed(0)}%`);
+        console.log(`   Fix: ${inc.fix?.approach?.substring(0, 60) ?? 'Unknown'}...\n`);
       });
 
     } catch (error: any) {

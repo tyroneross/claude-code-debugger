@@ -98,14 +98,15 @@ async function matchPatterns(
     ).length;
 
     // Check tags
-    const tagMatches = pattern.tags.filter(tag =>
+    const patternTags = pattern.tags ?? [];
+    const tagMatches = patternTags.filter(tag =>
       symptomWords.includes(tag.toLowerCase())
     ).length;
 
     // Calculate score
     const score =
       (signatureMatches / Math.max(pattern.detection_signature.length, 1)) * 0.7 +
-      (tagMatches / Math.max(pattern.tags.length, 1)) * 0.3;
+      (tagMatches / Math.max(patternTags.length, 1)) * 0.3;
 
     return { pattern, score };
   });
@@ -149,7 +150,7 @@ async function searchIncidents(
     );
 
     // Tag similarity with bidirectional matching
-    const incidentTagWords = incident.tags.flatMap(tag => tag.toLowerCase().split(/\s+/));
+    const incidentTagWords = (incident.tags ?? []).flatMap(tag => tag.toLowerCase().split(/\s+/));
     const tagMatches = symptomWords.filter(word =>
       incidentTagWords.some(tagWord => tagWord.includes(word) || word.includes(tagWord))
     ).length;
@@ -236,7 +237,7 @@ export async function searchByTags(tags: string[], config?: MemoryConfig): Promi
   const allIncidents = await loadAllIncidents(config);
 
   return allIncidents.filter(incident =>
-    tags.some(tag => incident.tags.includes(tag))
+    tags.some(tag => (incident.tags ?? []).includes(tag))
   );
 }
 
@@ -298,7 +299,8 @@ export async function enhancedSearch(
   for (const incident of allIncidents) {
     if (seenIds.has(incident.incident_id)) continue;
 
-    const normalizedTags = incident.tags.map(tag => tag.toLowerCase());
+    const incidentTags = incident.tags ?? [];
+    const normalizedTags = incidentTags.map(tag => tag.toLowerCase());
     const matchedTags = normalizedTags.filter(tag =>
       queryWords.some(word => tag.includes(word) || word.includes(tag))
     );
@@ -308,7 +310,7 @@ export async function enhancedSearch(
         incident,
         score: 0.9,
         matchType: 'tag',
-        highlights: incident.tags.filter(tag =>
+        highlights: incidentTags.filter(tag =>
           matchedTags.includes(tag.toLowerCase())
         )
       });
