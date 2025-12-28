@@ -19,6 +19,7 @@ import {
 } from './storage';
 import { extractPatterns } from './pattern-extractor';
 import { getMemoryPaths } from './config';
+import { calculateQualityScore } from './interactive-verifier';
 
 /**
  * Review and complete incomplete incidents interactively
@@ -375,22 +376,6 @@ async function completeIncidentInteractive(incident: Incident): Promise<Incident
   };
 
   return incident;
-}
-
-/**
- * Calculate quality score
- */
-function calculateQualityScore(incident: Incident): number {
-  let score = 0;
-
-  if (incident.symptom) score += 0.2;
-  if (incident.root_cause.description) score += 0.2;
-  if (incident.root_cause.confidence >= 0.7) score += 0.1;
-  if (incident.fix.approach) score += 0.2;
-  if (incident.fix.changes.length > 0) score += 0.1;
-  if (incident.verification.status === 'verified') score += 0.2;
-
-  return Math.min(score, 1.0);
 }
 
 /**

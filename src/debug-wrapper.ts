@@ -5,14 +5,13 @@
  * Works with all 4 entry points: chief agent, direct agent, chat mode, resume work.
  */
 
-import type { Incident, RetrievalResult, Pattern } from './types';
+import type { Incident, RetrievalResult, Pattern, MemoryConfig } from './types';
 import { checkMemory } from './retrieval';
 import { storeIncident, generateIncidentId, getMemoryStats } from './storage';
 import { autoExtractPatternIfReady } from './pattern-extractor';
+import { getMemoryPaths } from './config';
 import fs from 'fs/promises';
 import path from 'path';
-
-const SESSIONS_DIR = path.join(process.cwd(), '.claude/memory/sessions');
 
 interface DebugContext {
   symptom: string;
@@ -234,8 +233,9 @@ export async function storeDebugIncident(
 /**
  * Verify incident was actually stored (file system ground truth)
  */
-async function verifyIncidentStorage(incident_id: string): Promise<boolean> {
-  const filepath = path.join(process.cwd(), '.claude/memory/incidents', `${incident_id}.json`);
+async function verifyIncidentStorage(incident_id: string, config?: MemoryConfig): Promise<boolean> {
+  const paths = getMemoryPaths(config);
+  const filepath = path.join(paths.incidents, `${incident_id}.json`);
 
   try {
     await fs.access(filepath);
@@ -250,17 +250,19 @@ async function verifyIncidentStorage(incident_id: string): Promise<boolean> {
 /**
  * Save session context for later reference
  */
-async function saveSessionContext(context: DebugContext): Promise<void> {
-  await fs.mkdir(SESSIONS_DIR, { recursive: true });
-  const filepath = path.join(SESSIONS_DIR, `${context.session_id}.json`);
+async function saveSessionContext(context: DebugContext, config?: MemoryConfig): Promise<void> {
+  const paths = getMemoryPaths(config);
+  await fs.mkdir(paths.sessions, { recursive: true });
+  const filepath = path.join(paths.sessions, `${context.session_id}.json`);
   await fs.writeFile(filepath, JSON.stringify(context, null, 2), 'utf-8');
 }
 
 /**
  * Load session context
  */
-async function loadSessionContext(session_id: string): Promise<DebugContext | null> {
-  const filepath = path.join(SESSIONS_DIR, `${session_id}.json`);
+async function loadSessionContext(session_id: string, config?: MemoryConfig): Promise<DebugContext | null> {
+  const paths = getMemoryPaths(config);
+  const filepath = path.join(paths.sessions, `${session_id}.json`);
 
   try {
     const content = await fs.readFile(filepath, 'utf-8');
@@ -273,8 +275,9 @@ async function loadSessionContext(session_id: string): Promise<DebugContext | nu
 /**
  * Clean up session after incident stored
  */
-async function cleanupSession(session_id: string): Promise<void> {
-  const filepath = path.join(SESSIONS_DIR, `${session_id}.json`);
+async function cleanupSession(session_id: string, config?: MemoryConfig): Promise<void> {
+  const paths = getMemoryPaths(config);
+  const filepath = path.join(paths.sessions, `${session_id}.json`);
 
   try {
     await fs.unlink(filepath);

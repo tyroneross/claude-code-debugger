@@ -1,6 +1,6 @@
 {
   "name": "@tyroneross/claude-code-debugger",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Debugging memory system for Claude Code - never solve the same bug twice",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

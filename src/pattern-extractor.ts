@@ -131,7 +131,7 @@ function calculateCommonality(incidents: Incident[]): {
   // Find tags that appear in most incidents
   const tagCounts = new Map<string, number>();
   for (const inc of incidents) {
-    for (const tag of inc.tags) {
+    for (const tag of (inc.tags ?? [])) {
       tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
     }
   }
@@ -144,7 +144,7 @@ function calculateCommonality(incidents: Incident[]): {
   // Find files that appear in multiple incidents
   const fileCounts = new Map<string, number>();
   for (const inc of incidents) {
-    for (const file of inc.files_changed) {
+    for (const file of (inc.files_changed ?? [])) {
       fileCounts.set(file, (fileCounts.get(file) || 0) + 1);
     }
   }
@@ -230,7 +230,7 @@ function extractDetectionSignature(incidents: Incident[]): string[] {
     symptomWords.forEach(w => keywords.add(w));
 
     // Extract from tags
-    incident.tags.forEach(tag => keywords.add(tag.toLowerCase()));
+    (incident.tags ?? []).forEach(tag => keywords.add(tag.toLowerCase()));
 
     // Extract from category
     keywords.add(incident.root_cause.category);

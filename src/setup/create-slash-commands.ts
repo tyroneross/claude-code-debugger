@@ -43,6 +43,26 @@ allowedTools: ["Bash"]
 Scanning recent Claude Code sessions for debugging work to add to memory.
 `;
 
+const UPDATE_CMD = `---
+description: "Update claude-code-debugger to the latest version"
+allowedTools: ["Bash"]
+---
+
+! npx @tyroneross/claude-code-debugger update
+
+Checking for updates to the debugging memory system...
+`;
+
+const FEEDBACK_CMD = `---
+description: "Submit feedback or report issues"
+allowedTools: ["Bash"]
+---
+
+! npx @tyroneross/claude-code-debugger feedback
+
+Opening GitHub to submit feedback...
+`;
+
 export async function createSlashCommands(projectRoot: string): Promise<number> {
   const commandsDir = path.join(projectRoot, '.claude', 'commands');
 
@@ -54,6 +74,8 @@ export async function createSlashCommands(projectRoot: string): Promise<number> 
     { name: 'debugger.md', content: DEBUGGER_CMD },
     { name: 'debugger-status.md', content: DEBUGGER_STATUS_CMD },
     { name: 'debugger-scan.md', content: DEBUGGER_SCAN_CMD },
+    { name: 'update.md', content: UPDATE_CMD },
+    { name: 'feedback.md', content: FEEDBACK_CMD },
   ];
 
   let created = 0;

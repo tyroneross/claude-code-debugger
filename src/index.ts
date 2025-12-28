@@ -64,5 +64,8 @@ export { debugWithMemory, storeDebugIncident, getMemoryStatus } from './debug-wr
 // Pattern Extraction
 export { extractPatterns, suggestPatterns, autoExtractPatternIfReady } from './pattern-extractor';
 
+// Batch Operations
+export { batchReviewIncomplete, batchExtractPatterns, batchCleanup } from './batch-operations';
+
 // Audit Trail Mining
 export { mineAuditTrail, previewAuditMining } from './audit-miner';

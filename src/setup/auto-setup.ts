@@ -119,7 +119,7 @@ async function autoSetup(): Promise<void> {
 
     console.log('\n✅ Debugging memory is now active!');
     console.log('   Claude will check past solutions automatically.');
-    console.log('   Manual: /memory-debug "symptom"\n');
+    console.log('   Commands: /debugger "symptom" | /debugger-status | /update\n');
 
   } catch (error) {
     // Don't fail install, just warn

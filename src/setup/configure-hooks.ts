@@ -32,7 +32,7 @@ export async function configureHooks(projectRoot: string): Promise<boolean> {
   // Hook: On session stop, auto-mine recent audit trail
   // New format uses matcher + hooks array structure
   type HookEntry = {
-    matcher?: Record<string, unknown>;
+    matcher?: string;  // Empty string "" matches all events
     hooks?: Array<{ type?: string; command?: string }>;
     // Legacy format fields
     type?: string;
@@ -54,7 +54,7 @@ export async function configureHooks(projectRoot: string): Promise<boolean> {
   if (!hasMemoryHook) {
     // Use new matcher-based format
     stopHooks.push({
-      matcher: {},
+      matcher: "",
       hooks: [
         {
           type: 'command',

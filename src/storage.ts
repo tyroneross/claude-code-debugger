@@ -82,9 +82,22 @@ export async function storeIncident(
 }
 
 /**
+ * Validate incident ID format to prevent path traversal attacks
+ */
+function isValidIncidentId(incident_id: string): boolean {
+  // Only allow alphanumeric, underscores, and hyphens (INC_YYYYMMDD_HHMMSS_xxxx format)
+  return /^INC_[\w\-]+$/.test(incident_id);
+}
+
+/**
  * Load an incident by ID
  */
 export async function loadIncident(incident_id: string, config?: MemoryConfig): Promise<Incident | null> {
+  // Validate incident ID to prevent path traversal
+  if (!isValidIncidentId(incident_id)) {
+    throw new Error(`Invalid incident ID format: ${incident_id}`);
+  }
+
   const paths = getMemoryPaths(config);
   const filename = `${incident_id}.json`;
   const filepath = path.join(paths.incidents, filename);
@@ -150,9 +163,22 @@ export async function storePattern(pattern: Pattern, config?: MemoryConfig): Pro
 }
 
 /**
+ * Validate pattern ID format to prevent path traversal attacks
+ */
+function isValidPatternId(pattern_id: string): boolean {
+  // Only allow alphanumeric and underscores (PTN_CATEGORY_NAME format)
+  return /^PTN_[\w]+$/.test(pattern_id);
+}
+
+/**
  * Load a pattern by ID
  */
 export async function loadPattern(pattern_id: string, config?: MemoryConfig): Promise<Pattern | null> {
+  // Validate pattern ID to prevent path traversal
+  if (!isValidPatternId(pattern_id)) {
+    throw new Error(`Invalid pattern ID format: ${pattern_id}`);
+  }
+
   const paths = getMemoryPaths(config);
   const filename = `${pattern_id}.json`;
   const filepath = path.join(paths.patterns, filename);

@@ -237,4 +237,196 @@ program
     }
   });
 
+// Feedback command
+program
+  .command('feedback')
+  .description('Submit feedback or report issues')
+  .option('--bug', 'Report a bug')
+  .option('--feature', 'Request a feature')
+  .action(async (options: { bug?: boolean; feature?: boolean }) => {
+    const { exec } = await import('child_process');
+
+    console.log('\n💬 Claude Code Debugger - Feedback');
+    console.log('═══════════════════════════════════════════════\n');
+
+    // Determine issue type
+    let issueType = 'feedback';
+    let labels = 'feedback';
+    let title = '';
+    let body = '';
+
+    if (options.bug) {
+      issueType = 'bug';
+      labels = 'bug';
+      title = encodeURIComponent('[Bug] ');
+      body = encodeURIComponent(`## Description
+Describe the bug...
+
+## Steps to Reproduce
+1.
+2.
+3.
+
+## Expected Behavior
+
+
+## Actual Behavior
+
+
+## Environment
+- Version: ${version}
+- Node: ${process.version}
+- OS: ${process.platform}
+`);
+    } else if (options.feature) {
+      issueType = 'feature';
+      labels = 'enhancement';
+      title = encodeURIComponent('[Feature] ');
+      body = encodeURIComponent(`## Feature Request
+Describe the feature...
+
+## Use Case
+Why is this needed?
+
+## Proposed Solution
+
+`);
+    } else {
+      body = encodeURIComponent(`## Feedback
+Your feedback here...
+
+---
+Version: ${version}
+`);
+    }
+
+    const url = `https://github.com/tyroneross/claude-code-debugger/issues/new?labels=${labels}&title=${title}&body=${body}`;
+
+    console.log(`   Opening GitHub to submit ${issueType}...\n`);
+
+    // Open browser (cross-platform)
+    const openCommand = process.platform === 'darwin' ? 'open' :
+                        process.platform === 'win32' ? 'start' : 'xdg-open';
+
+    exec(`${openCommand} "${url}"`, (error) => {
+      if (error) {
+        console.log('   Could not open browser automatically.');
+        console.log(`   Please visit: ${url}\n`);
+      } else {
+        console.log('   ✅ Browser opened! Create your issue on GitHub.\n');
+      }
+    });
+  });
+
+// Update command
+program
+  .command('update')
+  .description('Check for updates and optionally install the latest version')
+  .option('-y, --yes', 'Skip confirmation prompt and install immediately')
+  .action(async (options: { yes?: boolean }) => {
+    const { execSync } = await import('child_process');
+    const prompts = await import('prompts');
+
+    console.log('\n🔄 Claude Code Debugger - Update Check');
+    console.log('═══════════════════════════════════════════════\n');
+
+    try {
+      // Get current version
+      console.log(`   Current version: ${version}`);
+
+      // Check latest version and changelog from npm
+      const pkgInfoRaw = execSync('npm view @tyroneross/claude-code-debugger --json 2>/dev/null', {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe']
+      }).trim();
+
+      const pkgInfo = JSON.parse(pkgInfoRaw);
+      const latestVersion = pkgInfo.version;
+
+      console.log(`   Latest version:  ${latestVersion}`);
+
+      if (version === latestVersion) {
+        console.log('\n✅ Already up to date!\n');
+        return;
+      }
+
+      console.log(`\n📦 Update available: ${version} → ${latestVersion}\n`);
+
+      // Fetch changelog from GitHub releases
+      let changelog = '';
+      try {
+        const https = await import('https');
+        changelog = await new Promise<string>((resolve) => {
+          https.get('https://api.github.com/repos/tyroneross/claude-code-debugger/releases/latest', {
+            headers: { 'User-Agent': 'claude-code-debugger' }
+          }, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                const release = JSON.parse(data);
+                resolve(release.body || '');
+              } catch {
+                resolve('');
+              }
+            });
+          }).on('error', () => resolve(''));
+        });
+      } catch {
+        // Ignore fetch errors
+      }
+
+      // Display what's new
+      console.log('📋 What\'s new:');
+      if (changelog) {
+        const lines = changelog.split('\n').slice(0, 5);
+        lines.forEach((line: string) => {
+          const trimmed = line.substring(0, 70);
+          if (trimmed) console.log(`   ${trimmed}${line.length > 70 ? '...' : ''}`);
+        });
+      } else {
+        console.log('   See: https://github.com/tyroneross/claude-code-debugger/releases');
+      }
+      console.log('');
+
+      // Prompt user for confirmation unless --yes flag is passed
+      let shouldInstall = options.yes;
+
+      if (!shouldInstall) {
+        const response = await prompts.default({
+          type: 'confirm',
+          name: 'confirm',
+          message: 'Would you like to install this update?',
+          initial: true
+        });
+
+        shouldInstall = response.confirm;
+      }
+
+      if (!shouldInstall) {
+        console.log('\n⏭️  Update skipped.\n');
+        return;
+      }
+
+      // Perform update
+      console.log('\n📥 Installing update...\n');
+
+      execSync('npm install @tyroneross/claude-code-debugger@latest', {
+        stdio: 'inherit',
+        cwd: process.cwd()
+      });
+
+      console.log('\n✅ Update complete!');
+      console.log('   Restart your terminal or run: npx @tyroneross/claude-code-debugger status\n');
+
+    } catch (error: any) {
+      if (error.message?.includes('npm view')) {
+        console.error('❌ Could not check npm registry. Are you online?');
+      } else {
+        console.error('❌ Update failed:', error.message);
+      }
+      process.exit(1);
+    }
+  });
+
 program.parse();
