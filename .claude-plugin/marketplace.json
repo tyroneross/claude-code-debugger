@@ -1,0 +1,38 @@
+{
+  "name": "claude-code-debugger",
+  "owner": {
+    "name": "Tyrone Ross",
+    "url": "https://github.com/tyroneross"
+  },
+  "metadata": {
+    "description": "Official marketplace for claude-code-debugger - debugging memory that learns from past bugs",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-debugger",
+      "source": ".",
+      "description": "Debugging memory system - never solve the same bug twice. Tracks past debugging sessions and surfaces similar issues.",
+      "version": "1.3.0",
+      "author": {
+        "name": "Tyrone Ross"
+      },
+      "homepage": "https://github.com/tyroneross/claude-code-debugger#readme",
+      "repository": "https://github.com/tyroneross/claude-code-debugger",
+      "license": "MIT",
+      "keywords": [
+        "debugging",
+        "memory",
+        "incident-tracking",
+        "pattern-recognition",
+        "developer-tools"
+      ],
+      "category": "productivity",
+      "tags": [
+        "debugging",
+        "bug-tracking",
+        "memory-system"
+      ]
+    }
+  ]
+}
