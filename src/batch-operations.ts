@@ -33,8 +33,8 @@ export async function batchReviewIncomplete(config?: MemoryConfig): Promise<void
 
   // Filter for incomplete incidents (low completeness score or marked incomplete)
   const incomplete = incidents.filter(inc => {
-    const hasIncompleteTag = inc.tags.includes('incomplete');
-    const lowCompleteness = inc.completeness?.quality_score < 0.7;
+    const hasIncompleteTag = (inc.tags ?? []).includes('incomplete');
+    const lowCompleteness = (inc.completeness?.quality_score ?? 0) < 0.7;
     const unverified = inc.verification?.status === 'unverified';
 
     return hasIncompleteTag || lowCompleteness || unverified;
@@ -228,8 +228,8 @@ export async function batchCleanup(options?: {
   const incidents = await loadAllIncidents(config);
   const problematic = incidents.filter(inc => {
     const tooOld = inc.timestamp < cutoffTime;
-    const lowQuality = inc.completeness.quality_score < 0.4;
-    const noTags = inc.tags.length === 0;
+    const lowQuality = (inc.completeness?.quality_score ?? 0) < 0.4;
+    const noTags = (inc.tags ?? []).length === 0;
 
     return tooOld && (lowQuality || noTags);
   });
@@ -237,7 +237,9 @@ export async function batchCleanup(options?: {
   console.log(`\nFound ${problematic.length} problematic incidents:`);
   problematic.forEach(inc => {
     const date = new Date(inc.timestamp);
-    console.log(`   ${inc.incident_id} - ${date.toLocaleDateString()} - Score: ${(inc.completeness.quality_score * 100).toFixed(0)}%`);
+    const dateStr = isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
+    const score = inc.completeness?.quality_score ?? 0;
+    console.log(`   ${inc.incident_id} - ${dateStr} - Score: ${(score * 100).toFixed(0)}%`);
   });
 
   if (problematic.length > 0 && !dryRun) {

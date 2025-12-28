@@ -332,17 +332,16 @@ export async function enhancedSearch(
     if (!incident.symptom || typeof incident.symptom !== 'string') continue;
 
     const symptomScore = fuzzyMatch(queryLower, incident.symptom.toLowerCase(), fuzzyThreshold);
-    const rootCauseScore = fuzzyMatch(
-      queryLower,
-      incident.root_cause.description.toLowerCase(),
-      fuzzyThreshold
-    );
+    const rootCauseDesc = incident.root_cause?.description ?? '';
+    const rootCauseScore = rootCauseDesc
+      ? fuzzyMatch(queryLower, rootCauseDesc.toLowerCase(), fuzzyThreshold)
+      : 0;
 
     const maxScore = Math.max(symptomScore, rootCauseScore);
     if (maxScore >= fuzzyThreshold) {
       const highlight = symptomScore >= rootCauseScore
         ? incident.symptom
-        : incident.root_cause.description;
+        : (rootCauseDesc || incident.symptom);
 
       results.push({
         incident,
@@ -358,18 +357,22 @@ export async function enhancedSearch(
   // If we have top matches, find similar categories
   if (results.length > 0) {
     const topCategories = new Set(
-      results.slice(0, 3).map(r => r.incident.root_cause.category)
+      results.slice(0, 3)
+        .map(r => r.incident.root_cause?.category)
+        .filter(Boolean)
     );
 
     for (const incident of allIncidents) {
       if (seenIds.has(incident.incident_id)) continue;
+      const category = incident.root_cause?.category;
+      if (!category) continue;
 
-      if (topCategories.has(incident.root_cause.category)) {
+      if (topCategories.has(category)) {
         results.push({
           incident,
           score: 0.6,
           matchType: 'category',
-          highlights: [incident.root_cause.category]
+          highlights: [category]
         });
         seenIds.add(incident.incident_id);
       }

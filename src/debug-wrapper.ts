@@ -329,11 +329,13 @@ export async function getMemoryStatus(): Promise<void> {
   console.log(`Total patterns: ${stats.total_patterns}`);
   console.log(`Disk usage: ${stats.disk_usage_kb} KB`);
 
-  if (stats.total_incidents > 0) {
+  if (stats.total_incidents > 0 && stats.oldest_incident > 0) {
     const oldestDate = new Date(stats.oldest_incident);
     const newestDate = new Date(stats.newest_incident);
-    console.log(`Oldest incident: ${oldestDate.toLocaleDateString()}`);
-    console.log(`Newest incident: ${newestDate.toLocaleDateString()}`);
+    const oldestStr = isNaN(oldestDate.getTime()) ? 'Unknown' : oldestDate.toLocaleDateString();
+    const newestStr = isNaN(newestDate.getTime()) ? 'Unknown' : newestDate.toLocaleDateString();
+    console.log(`Oldest incident: ${oldestStr}`);
+    console.log(`Newest incident: ${newestStr}`);
   }
 
   console.log('');
