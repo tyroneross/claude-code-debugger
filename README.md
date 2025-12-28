@@ -22,7 +22,17 @@ A debugging memory system for Claude Code that automatically learns from past in
 
 ## Installation
 
-Install via npm (includes automatic slash command setup):
+### Via Plugin Marketplace
+
+```bash
+# Add the marketplace
+/plugin marketplace add tyroneross/claude-code-debugger
+
+# Install the plugin
+/plugin install claude-code-debugger@claude-code-debugger
+```
+
+### Via npm (includes CLI and automatic slash command setup)
 
 ```bash
 # npm
