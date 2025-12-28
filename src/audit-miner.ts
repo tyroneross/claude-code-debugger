@@ -63,9 +63,10 @@ export async function mineAuditTrail(options: {
 
   // Step 4: Check which are already in memory
   const existing = await loadAllIncidents(config);
-  const existingSymptoms = new Set(existing.map(inc =>
-    inc.symptom.toLowerCase().substring(0, 50)
-  ));
+  const existingSymptoms = new Set(existing
+    .filter(inc => inc.symptom && typeof inc.symptom === 'string')
+    .map(inc => inc.symptom.toLowerCase().substring(0, 50))
+  );
 
   // Filter out empty symptoms and duplicates
   const novel = filtered.filter(f =>
@@ -84,7 +85,8 @@ export async function mineAuditTrail(options: {
 
     if (auto_store) {
       await storeIncident(incident, { validate_schema: true, config });
-      console.log(`✅ Stored: ${incident.symptom.substring(0, 50)}...`);
+      const symptomPreview = incident.symptom ? incident.symptom.substring(0, 50) : 'Unknown';
+      console.log(`✅ Stored: ${symptomPreview}...`);
     }
   }
 
@@ -476,7 +478,8 @@ export async function previewAuditMining(days_back: number = 30, config?: Memory
   console.log(`\n📋 Would add ${incidents.length} incidents to memory:\n`);
 
   incidents.forEach((inc, i) => {
-    console.log(`${i + 1}. ${inc.symptom.substring(0, 60)}...`);
+    const symptomPreview = inc.symptom ? inc.symptom.substring(0, 60) : 'Unknown symptom';
+    console.log(`${i + 1}. ${symptomPreview}...`);
     console.log(`   Category: ${inc.root_cause.category}`);
     console.log(`   Confidence: ${(inc.root_cause.confidence * 100).toFixed(0)}%`);
     console.log(`   Quality: ${(inc.completeness.quality_score * 100).toFixed(0)}%\n`);

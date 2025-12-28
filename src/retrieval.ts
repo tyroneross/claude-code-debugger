@@ -143,6 +143,11 @@ async function searchIncidents(
       return { incident, score: 0 };
     }
 
+    // Skip incidents without valid symptom
+    if (!incident.symptom || typeof incident.symptom !== 'string') {
+      return { incident, score: 0 };
+    }
+
     // Calculate similarity
     const symptomSimilarity = calculateKeywordSimilarity(
       symptomWords,
@@ -281,6 +286,7 @@ export async function enhancedSearch(
   // Check if symptom description contains query (case-insensitive)
   for (const incident of allIncidents) {
     if (seenIds.has(incident.incident_id)) continue;
+    if (!incident.symptom || typeof incident.symptom !== 'string') continue;
 
     const symptomLower = incident.symptom.toLowerCase();
     if (symptomLower.includes(queryLower)) {
@@ -323,6 +329,7 @@ export async function enhancedSearch(
   const fuzzyThreshold = 0.7;
   for (const incident of allIncidents) {
     if (seenIds.has(incident.incident_id)) continue;
+    if (!incident.symptom || typeof incident.symptom !== 'string') continue;
 
     const symptomScore = fuzzyMatch(queryLower, incident.symptom.toLowerCase(), fuzzyThreshold);
     const rootCauseScore = fuzzyMatch(

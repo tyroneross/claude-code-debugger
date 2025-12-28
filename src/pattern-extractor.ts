@@ -222,12 +222,14 @@ function extractDetectionSignature(incidents: Incident[]): string[] {
   const keywords = new Set<string>();
 
   for (const incident of incidents) {
-    // Extract from symptom
-    const symptomWords = incident.symptom.toLowerCase()
-      .split(/\s+/)
-      .filter(w => w.length > 3);
+    // Extract from symptom (with null safety)
+    if (incident.symptom && typeof incident.symptom === 'string') {
+      const symptomWords = incident.symptom.toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length > 3);
 
-    symptomWords.forEach(w => keywords.add(w));
+      symptomWords.forEach(w => keywords.add(w));
+    }
 
     // Extract from tags
     (incident.tags ?? []).forEach(tag => keywords.add(tag.toLowerCase()));
