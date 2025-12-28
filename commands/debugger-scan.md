@@ -1,6 +1,6 @@
 ---
 description: "Scan recent sessions for debugging incidents"
-allowed-tools: ["Bash"]
+allowed-tools: Bash
 ---
 
 Mine the Claude Code audit trail for debugging work from the past 7 days:

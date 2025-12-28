@@ -1,6 +1,6 @@
 ---
 description: "Update claude-code-debugger to the latest version"
-allowed-tools: ["Bash"]
+allowed-tools: Bash
 ---
 
 Check for and install updates to the debugging memory system:

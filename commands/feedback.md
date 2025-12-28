@@ -1,6 +1,6 @@
 ---
 description: "Submit feedback or report issues"
-allowed-tools: ["Bash"]
+allowed-tools: Bash
 ---
 
 Open the GitHub issues page for the claude-code-debugger project:

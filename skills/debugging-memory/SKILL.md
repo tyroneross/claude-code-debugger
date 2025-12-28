@@ -1,5 +1,5 @@
 ---
-name: Debugging Memory
+name: debugging-memory
 description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Provides memory-first debugging workflow that checks past incidents before investigating.
 version: 1.0.0
 ---

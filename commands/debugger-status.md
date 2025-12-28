@@ -1,6 +1,6 @@
 ---
 description: "Show debugging memory statistics"
-allowed-tools: ["Bash"]
+allowed-tools: Bash
 ---
 
 Display the current state of the debugging memory system:

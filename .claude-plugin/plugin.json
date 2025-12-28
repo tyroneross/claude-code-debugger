@@ -4,9 +4,10 @@
   "description": "Debugging memory system - never solve the same bug twice. Stores incidents, extracts patterns, and retrieves similar past bugs.",
   "author": {
     "name": "Tyrone Ross",
-    "email": "tyrone@example.com",
+    "email": "tyrone@rosslabs.ai",
     "url": "https://github.com/tyroneross"
   },
+  "homepage": "https://github.com/tyroneross/claude-code-debugger",
   "repository": "https://github.com/tyroneross/claude-code-debugger",
   "license": "MIT",
   "keywords": [
@@ -17,5 +18,6 @@
     "developer-tools"
   ],
   "commands": "./commands",
+  "skills": "./skills",
   "hooks": "./hooks/hooks.json"
 }

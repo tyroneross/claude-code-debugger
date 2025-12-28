@@ -1,6 +1,6 @@
 ---
 description: "Search past bugs for similar issues before debugging"
-allowed-tools: ["Bash", "Read"]
+allowed-tools: Bash, Read
 argument-hint: "<symptom>"
 ---
 
