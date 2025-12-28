@@ -22,6 +22,8 @@ A debugging memory system for Claude Code that automatically learns from past in
 
 ## Installation
 
+Install via npm (includes automatic slash command setup):
+
 ```bash
 # npm
 npm install @tyroneross/claude-code-debugger

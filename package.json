@@ -16,6 +16,10 @@
   },
   "files": [
     "dist",
+    "commands",
+    "skills",
+    "hooks",
+    ".claude-plugin",
     "README.md",
     "LICENSE"
   ],

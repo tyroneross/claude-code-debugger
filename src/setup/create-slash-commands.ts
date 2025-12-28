@@ -1,67 +1,51 @@
 /**
  * Create Claude Code slash commands for the debugging memory system
+ *
+ * Commands are read from the plugin's commands/ directory (single source of truth)
+ * and copied to the project's .claude/commands/ directory for npm users.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-const DEBUGGER_CMD = `---
-description: "Search past bugs for similar issues before debugging"
-allowedTools: ["Bash", "Read"]
----
+/**
+ * Get the package root directory (where commands/ lives)
+ */
+function getPackageRoot(): string {
+  // When running from dist/src/setup/, go up to package root
+  // Look for the commands/ directory as the indicator
+  let dir = __dirname;
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'commands')) &&
+        fs.existsSync(path.join(dir, 'package.json'))) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  // Fallback: assume we're 3 levels deep (dist/src/setup)
+  return path.resolve(__dirname, '..', '..', '..');
+}
 
-{{#if ARGUMENTS}}
-! npx @tyroneross/claude-code-debugger debug "$ARGUMENTS"
+/**
+ * Read commands from the plugin's commands/ directory
+ */
+function loadPluginCommands(): Array<{ name: string; content: string }> {
+  const packageRoot = getPackageRoot();
+  const pluginCommandsDir = path.join(packageRoot, 'commands');
 
-Checked debugging memory for similar past incidents.
-If a match was found with >70% confidence, I'll try that solution first.
-{{else}}
-! npx @tyroneross/claude-code-debugger status
+  if (!fs.existsSync(pluginCommandsDir)) {
+    console.warn('Plugin commands directory not found:', pluginCommandsDir);
+    return [];
+  }
 
-No symptom provided. Showing recent issues from memory.
-Please describe what you're debugging, or pick from a recent issue above.
-{{/if}}
-`;
+  const commandFiles = fs.readdirSync(pluginCommandsDir)
+    .filter(f => f.endsWith('.md'));
 
-const DEBUGGER_STATUS_CMD = `---
-description: "Show debugging memory statistics"
-allowedTools: ["Bash"]
----
-
-! npx @tyroneross/claude-code-debugger status
-
-Here's the current state of the debugging memory system.
-`;
-
-const DEBUGGER_SCAN_CMD = `---
-description: "Scan recent sessions for debugging incidents"
-allowedTools: ["Bash"]
----
-
-! npx @tyroneross/claude-code-debugger mine --days 7 --store
-
-Scanning recent Claude Code sessions for debugging work to add to memory.
-`;
-
-const UPDATE_CMD = `---
-description: "Update claude-code-debugger to the latest version"
-allowedTools: ["Bash"]
----
-
-! npx @tyroneross/claude-code-debugger update
-
-Checking for updates to the debugging memory system...
-`;
-
-const FEEDBACK_CMD = `---
-description: "Submit feedback or report issues"
-allowedTools: ["Bash"]
----
-
-! npx @tyroneross/claude-code-debugger feedback
-
-Opening GitHub to submit feedback...
-`;
+  return commandFiles.map(name => ({
+    name,
+    content: fs.readFileSync(path.join(pluginCommandsDir, name), 'utf-8')
+  }));
+}
 
 export async function createSlashCommands(projectRoot: string): Promise<number> {
   const commandsDir = path.join(projectRoot, '.claude', 'commands');
@@ -70,13 +54,12 @@ export async function createSlashCommands(projectRoot: string): Promise<number> 
     fs.mkdirSync(commandsDir, { recursive: true });
   }
 
-  const commands = [
-    { name: 'debugger.md', content: DEBUGGER_CMD },
-    { name: 'debugger-status.md', content: DEBUGGER_STATUS_CMD },
-    { name: 'debugger-scan.md', content: DEBUGGER_SCAN_CMD },
-    { name: 'update.md', content: UPDATE_CMD },
-    { name: 'feedback.md', content: FEEDBACK_CMD },
-  ];
+  const commands = loadPluginCommands();
+
+  if (commands.length === 0) {
+    console.warn('No commands found to install');
+    return 0;
+  }
 
   let created = 0;
   for (const cmd of commands) {

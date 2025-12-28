@@ -1,0 +1,21 @@
+{
+  "name": "claude-code-debugger",
+  "version": "1.2.5",
+  "description": "Debugging memory system - never solve the same bug twice. Stores incidents, extracts patterns, and retrieves similar past bugs.",
+  "author": {
+    "name": "Tyrone Ross",
+    "email": "tyrone@example.com",
+    "url": "https://github.com/tyroneross"
+  },
+  "repository": "https://github.com/tyroneross/claude-code-debugger",
+  "license": "MIT",
+  "keywords": [
+    "debugging",
+    "memory",
+    "incident-tracking",
+    "pattern-recognition",
+    "developer-tools"
+  ],
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json"
+}
