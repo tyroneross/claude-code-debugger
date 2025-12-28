@@ -39,3 +39,5 @@ jobs:
 
       - name: Publish to npm (trusted publisher via OIDC)
         run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ''  # Clear token set by setup-node to use OIDC instead
