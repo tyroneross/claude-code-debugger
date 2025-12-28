@@ -34,3 +34,4 @@ yarn.lock
 coverage/
 .nyc_output/
 .npmrc.github.backup
+.claude/memory/sessions/

@@ -1,4 +1,4 @@
-# Claude Memory
+# Claude Code Debugger
 
 > Never solve the same bug twice
 
@@ -59,6 +59,32 @@ pnpm install
 If your project uses pnpm (has `pnpm-lock.yaml`), always use `pnpm add` instead of `npm install`.
 
 ## Quick Start
+
+### Slash Commands (Claude Code)
+
+After installation, these slash commands are automatically available in Claude Code:
+
+| Command | Description |
+|---------|-------------|
+| `/debugger "symptom"` | Search past bugs for similar issues before debugging |
+| `/debugger` | Show recent bugs and pick one to debug |
+| `/debugger-status` | Show memory statistics |
+| `/debugger-mine` | Mine audit trail for recent debugging sessions |
+
+**Examples:**
+```
+/debugger "API returns 500 on login"
+→ Searches memory, shows similar past incidents and how you fixed them
+
+/debugger
+→ Shows recent bugs from memory, asks which one you're working on
+
+/debugger-status
+→ "4 incidents stored, 0 patterns, 4 KB used"
+
+/debugger-mine
+→ Extracts debugging sessions from last 7 days into memory
+```
 
 ### CLI Usage
 
