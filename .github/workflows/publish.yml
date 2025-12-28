@@ -6,10 +6,6 @@ on:
       - 'v*'  # Triggers on any tag starting with 'v' (e.g., v1.2.3)
   workflow_dispatch:  # Allow manual trigger
 
-permissions:
-  id-token: write   # Required for npm OIDC trusted publishing
-  contents: read
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,24 +16,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'  # Node 22 includes npm 11+
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Verify npm version
+      - name: Verify versions
         run: |
           echo "Node version: $(node -v)"
           echo "npm version: $(npm -v)"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts  # Skip postinstall since dist/ doesn't exist yet
 
       - name: Build
         run: npm run build
 
+      - name: Verify build output
+        run: |
+          echo "Checking dist/ folder..."
+          ls -la dist/
+          ls -la dist/src/
+          ls -la dist/cli/
+
       - name: Test
         run: npm test
 
-      - name: Publish to npm (trusted publisher via OIDC)
+      - name: Publish to npm
         run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ''  # Clear token set by setup-node to use OIDC instead
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
