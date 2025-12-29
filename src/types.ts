@@ -203,3 +203,263 @@ export interface VerificationResult {
   errors: string[];                 // Validation errors
   warnings: string[];               // Warnings (non-blocking)
 }
+
+// ============================================================================
+// TOKEN OPTIMIZATION - Compact Types for LLM Context Injection
+// ============================================================================
+
+/**
+ * Compact Incident - Token-efficient representation (~200 tokens vs ~550)
+ *
+ * Uses short keys to minimize token usage in LLM context.
+ * Full incident can be loaded on-demand via incident_id.
+ */
+export interface CompactIncident {
+  id: string;                       // incident_id
+  ts: number;                       // timestamp
+  sym: string;                      // symptom (max 80 chars)
+  rc: {                             // root_cause (compact)
+    d: string;                      // description (max 100 chars)
+    cat: string;                    // category
+    conf: number;                   // confidence (0-1)
+  };
+  fix: {                            // fix (compact)
+    a: string;                      // approach (max 80 chars)
+    n: number;                      // number of changes
+  };
+  v: 'V' | 'P' | 'U';              // verification: Verified/Partial/Unverified
+  t: string[];                      // tags (max 5)
+  q: number;                        // quality_score (0-1)
+  sim?: number;                     // similarity_score (when retrieved)
+}
+
+/**
+ * Compact Pattern - Token-efficient representation (~120 tokens vs ~250)
+ */
+export interface CompactPattern {
+  id: string;                       // pattern_id
+  n: number;                        // occurrence count (for scoring)
+  desc: string;                     // description (max 100 chars)
+  sig: string[];                    // detection_signature (max 5)
+  fix: string;                      // solution approach (max 150 chars)
+  sr: number;                       // success_rate (0-1)
+  cat: string;                      // category
+  t: string[];                      // tags (max 5)
+  last: number;                     // last_used timestamp
+  sim?: number;                     // similarity_score (when retrieved)
+}
+
+/**
+ * Incident Summary - Minimal representation for quick scans (~100 tokens)
+ */
+export interface IncidentSummary {
+  incident_id: string;
+  symptom_preview: string;          // First 80 chars
+  root_cause_preview: string;       // First 100 chars
+  fix_preview: string;              // First 80 chars
+  category: string;
+  confidence: number;
+  quality: number;
+}
+
+/**
+ * Token Budget Configuration
+ *
+ * Controls how many tokens are allocated to different context sections.
+ * Total default: 2500 tokens (leaving room for user prompt and response)
+ */
+export interface TokenBudget {
+  total: number;                    // Total token budget (default: 2500)
+  allocated: {
+    patterns: number;               // 30% = 750 tokens
+    incidents: number;              // 60% = 1500 tokens
+    metadata: number;               // 10% = 250 tokens
+  };
+  perItem: {
+    pattern: number;                // ~120 tokens per compact pattern
+    incident: number;               // ~200 tokens per compact incident
+    summary: number;                // ~100 tokens per summary
+  };
+}
+
+/**
+ * Default token budget configuration
+ */
+export const DEFAULT_TOKEN_BUDGET: TokenBudget = {
+  total: 2500,
+  allocated: {
+    patterns: 750,
+    incidents: 1500,
+    metadata: 250,
+  },
+  perItem: {
+    pattern: 120,
+    incident: 200,
+    summary: 100,
+  },
+};
+
+/**
+ * Field importance for selective serialization
+ */
+export type FieldImportance = 'critical' | 'secondary' | 'tertiary';
+
+/**
+ * Field configuration for selective inclusion
+ */
+export interface FieldConfig {
+  field: string;
+  importance: FieldImportance;
+  maxLength?: number;
+}
+
+/**
+ * Tiered Retrieval Configuration
+ */
+export interface TieredRetrievalConfig extends RetrievalConfig {
+  tier: 'summary' | 'compact' | 'full';
+  token_budget?: number;
+}
+
+/**
+ * Tiered Retrieval Result
+ */
+export interface TieredRetrievalResult {
+  // Summary tier
+  summaries?: IncidentSummary[];
+  pattern_summaries?: { id: string; name: string; success_rate: number }[];
+
+  // Compact tier
+  incidents?: CompactIncident[];
+  patterns?: CompactPattern[];
+
+  // Common
+  confidence: number;
+  tokens_used: number;
+  has_more_details?: boolean;
+  truncated?: {
+    incidents: number;
+    patterns: number;
+  };
+}
+
+// ============================================================================
+// PARALLEL ASSESSMENT - Domain-specific diagnosis types
+// ============================================================================
+
+/**
+ * Assessment domains for parallel diagnosis
+ */
+export type AssessmentDomain = 'database' | 'frontend' | 'api' | 'performance';
+
+/**
+ * Domain Assessment Result
+ */
+export interface DomainAssessment {
+  domain: string;                   // AssessmentDomain or string for flexibility
+  symptom_classification: string;
+  confidence: number;               // 0-1
+  probable_causes: string[];
+  recommended_actions: string[];
+  related_incidents: string[];      // incident_ids
+  search_tags: string[];
+  execution_time_ms?: number;       // Optional timing
+}
+
+/**
+ * Assessment summary for orchestration result
+ */
+export interface AssessmentSummary {
+  domain: string;
+  confidence: number;
+  summary: string;
+}
+
+/**
+ * Orchestration Result from parallel assessments
+ */
+export interface OrchestrationResult {
+  symptom: string;
+  domains_assessed: string[];
+  assessments: AssessmentSummary[];
+  priority_ranking: PriorityRank[];
+  recommended_sequence: string[];
+  total_execution_time_ms?: number;
+  parallel_efficiency?: number;     // speedup factor vs sequential
+}
+
+/**
+ * Priority ranking entry
+ */
+export interface PriorityRank {
+  rank: number;
+  domain: string;
+  action: string;
+  confidence?: number;
+}
+
+/**
+ * Parallel search result
+ */
+export interface ParallelSearchResult {
+  incident: Incident;
+  score: number;
+  matchType: 'exact' | 'tag' | 'fuzzy' | 'category' | 'semantic';
+  highlights: string[];
+}
+
+/**
+ * Parallel retrieval result
+ */
+export interface ParallelRetrievalResult {
+  results: ParallelSearchResult[];
+  strategies_used: string[];
+  execution_time_ms: number;
+  parallel_speedup: number;
+}
+
+/**
+ * Scored item from result aggregation
+ */
+export interface ScoredItem {
+  type: 'assessment' | 'incident' | 'pattern';
+  id: string;
+  score: number;
+  domain?: string;
+  summary: string;
+  actions: string[];
+  tags: string[];
+  rawData: DomainAssessment | CompactIncident | CompactPattern;
+}
+
+/**
+ * Aggregated result from multiple sources
+ */
+export interface AggregatedResult {
+  items: ScoredItem[];
+  total_count: number;
+  domains_involved: string[];
+  aggregate_confidence: number;
+  recommended_actions: string[];
+  search_tags: string[];
+}
+
+/**
+ * Ranked results after aggregation
+ */
+export interface RankedResults {
+  top_recommendations: AggregatedResult[];
+  by_domain: Record<string, AggregatedResult[]>;
+  by_confidence: AggregatedResult[];
+  summary: ResultsSummary;
+}
+
+/**
+ * Results summary statistics
+ */
+export interface ResultsSummary {
+  total_results: number;
+  domains_covered: string[];
+  highest_confidence: number;
+  has_verified_fix: boolean;
+}

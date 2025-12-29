@@ -308,3 +308,181 @@ export async function getMemoryStats(config?: MemoryConfig): Promise<{
     disk_usage_kb: diskUsage
   };
 }
+
+// ============================================================================
+// TOKEN OPTIMIZATION - Compact Serializers
+// ============================================================================
+
+import type {
+  CompactIncident,
+  CompactPattern,
+  IncidentSummary,
+} from './types';
+
+/**
+ * Truncate text to max length with ellipsis
+ */
+function truncate(text: string | undefined, maxLen: number): string {
+  if (!text) return '';
+  if (text.length <= maxLen) return text;
+  return text.substring(0, maxLen - 3) + '...';
+}
+
+/**
+ * Generate minimal incident summary (~100 tokens)
+ */
+export function generateIncidentSummary(incident: Incident): IncidentSummary {
+  return {
+    incident_id: incident.incident_id,
+    symptom_preview: truncate(incident.symptom, 80),
+    root_cause_preview: truncate(incident.root_cause?.description, 100),
+    fix_preview: truncate(incident.fix?.approach, 80),
+    category: incident.root_cause?.category || 'unknown',
+    confidence: incident.root_cause?.confidence || 0,
+    quality: incident.completeness?.quality_score || 0,
+  };
+}
+
+/**
+ * Convert full incident to compact format (~200 tokens)
+ *
+ * Uses short keys to minimize token usage in LLM context.
+ * Preserves essential information for debugging assistance.
+ */
+export function toCompactIncident(incident: Incident): CompactIncident {
+  return {
+    id: incident.incident_id,
+    ts: incident.timestamp,
+    sym: truncate(incident.symptom, 80),
+    rc: {
+      d: truncate(incident.root_cause?.description, 100),
+      cat: incident.root_cause?.category || 'unknown',
+      conf: incident.root_cause?.confidence || 0,
+    },
+    fix: {
+      a: truncate(incident.fix?.approach, 80),
+      n: incident.fix?.changes?.length || 0,
+    },
+    v: incident.verification?.status === 'verified'
+      ? 'V'
+      : incident.verification?.status === 'partial'
+      ? 'P'
+      : 'U',
+    t: (incident.tags || []).slice(0, 5),
+    q: incident.completeness?.quality_score || 0,
+    sim: incident.similarity_score,
+  };
+}
+
+/**
+ * Convert full pattern to compact format (~120 tokens)
+ */
+export function toCompactPattern(pattern: Pattern): CompactPattern {
+  return {
+    id: pattern.pattern_id,
+    n: pattern.usage_history?.total_uses || 1,
+    desc: truncate(pattern.description, 100),
+    sig: pattern.detection_signature.slice(0, 5),
+    fix: truncate(pattern.solution_template, 150),
+    sr: pattern.success_rate,
+    cat: pattern.tags[0] || 'general',
+    t: pattern.tags.slice(0, 5),
+    last: pattern.last_used || Date.now(),
+  };
+}
+
+/**
+ * Batch convert incidents to compact format
+ */
+export function toCompactIncidents(incidents: Incident[]): CompactIncident[] {
+  return incidents.map(toCompactIncident);
+}
+
+/**
+ * Batch convert patterns to compact format
+ */
+export function toCompactPatterns(patterns: Pattern[]): CompactPattern[] {
+  return patterns.map(toCompactPattern);
+}
+
+/**
+ * Estimate tokens for a compact incident
+ */
+export function estimateCompactIncidentTokens(incident: CompactIncident): number {
+  // Rough estimate: JSON structure + field names + values
+  const json = JSON.stringify(incident);
+  return Math.ceil(json.length / 4);
+}
+
+/**
+ * Estimate tokens for a compact pattern
+ */
+export function estimateCompactPatternTokens(pattern: CompactPattern): number {
+  const json = JSON.stringify(pattern);
+  return Math.ceil(json.length / 4);
+}
+
+/**
+ * Enforce token budget on results
+ *
+ * Returns limited incidents and patterns that fit within budget.
+ * Patterns get 30% budget, incidents get 60%, metadata gets 10%.
+ */
+export function enforceTokenBudget(
+  incidents: CompactIncident[],
+  patterns: CompactPattern[],
+  budget: number = 2500
+): {
+  limitedIncidents: CompactIncident[];
+  limitedPatterns: CompactPattern[];
+  tokensUsed: number;
+  truncated: { incidents: number; patterns: number };
+} {
+  const patternBudget = Math.floor(budget * 0.3);
+  const incidentBudget = Math.floor(budget * 0.6);
+
+  // Estimate tokens per item (using averages from DEFAULT_TOKEN_BUDGET)
+  const tokensPerPattern = 120;
+  const tokensPerIncident = 200;
+
+  const maxPatterns = Math.floor(patternBudget / tokensPerPattern);
+  const maxIncidents = Math.floor(incidentBudget / tokensPerIncident);
+
+  const limitedPatterns = patterns.slice(0, maxPatterns);
+  const limitedIncidents = incidents.slice(0, maxIncidents);
+
+  const tokensUsed =
+    limitedPatterns.length * tokensPerPattern +
+    limitedIncidents.length * tokensPerIncident +
+    Math.floor(budget * 0.1); // metadata overhead
+
+  return {
+    limitedPatterns,
+    limitedIncidents,
+    tokensUsed,
+    truncated: {
+      incidents: incidents.length - limitedIncidents.length,
+      patterns: patterns.length - limitedPatterns.length,
+    },
+  };
+}
+
+/**
+ * Load incidents and return compact versions
+ */
+export async function loadCompactIncidents(
+  config?: MemoryConfig
+): Promise<CompactIncident[]> {
+  const incidents = await loadAllIncidents(config);
+  return toCompactIncidents(incidents);
+}
+
+/**
+ * Load patterns and return compact versions
+ */
+export async function loadCompactPatterns(
+  config?: MemoryConfig
+): Promise<CompactPattern[]> {
+  const patterns = await loadAllPatterns(config);
+  return toCompactPatterns(patterns);
+}

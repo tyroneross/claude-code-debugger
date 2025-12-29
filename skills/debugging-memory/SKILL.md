@@ -1,7 +1,7 @@
 ---
 name: debugging-memory
 description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Provides memory-first debugging workflow that checks past incidents before investigating.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Debugging Memory Workflow
@@ -124,6 +124,107 @@ When a pattern matches:
 | `/debugger "symptom"` | Search memory for similar bugs |
 | `/debugger-status` | Show memory statistics |
 | `/debugger-scan` | Mine recent sessions for incidents |
+| `/assess "symptom"` | Run parallel domain assessment |
+
+## Parallel Domain Assessment
+
+For complex issues that may span multiple areas (database, frontend, API, performance), use parallel assessment to diagnose all domains simultaneously.
+
+### When to Use Parallel Assessment
+
+- Symptom is vague or unclear ("app broken", "something wrong")
+- Multiple domains may be involved ("search is slow and returns wrong results")
+- Post-deploy regression with unknown scope
+- Complex issues affecting multiple layers
+
+### Domain Assessors
+
+Four specialized assessor agents are available:
+
+| Assessor | Expertise |
+|----------|-----------|
+| `database-assessor` | Prisma, PostgreSQL, queries, migrations, connection issues |
+| `frontend-assessor` | React, hooks, rendering, state, hydration, SSR |
+| `api-assessor` | Endpoints, REST/GraphQL, auth, middleware, CORS |
+| `performance-assessor` | Latency, memory, CPU, bottlenecks, optimization |
+
+### Parallel Execution
+
+Launch assessors **in parallel** using the Task tool:
+
+```
+For: "search is slow and returns wrong results"
+
+Launch simultaneously:
+- database-assessor (query performance)
+- api-assessor (endpoint correctness)
+- performance-assessor (latency analysis)
+```
+
+Each assessor returns a JSON assessment with:
+- `confidence`: 0-1 score
+- `probable_causes`: List of likely issues
+- `recommended_actions`: Steps to fix
+- `related_incidents`: Past memory matches
+
+### Domain Detection Keywords
+
+| Domain | Trigger Keywords |
+|--------|-----------------|
+| Database | query, schema, migration, prisma, sql, connection, constraint, index |
+| Frontend | react, hook, useEffect, render, component, state, hydration, browser |
+| API | endpoint, route, request, response, auth, 500, 404, cors, middleware |
+| Performance | slow, latency, timeout, memory, leak, cpu, bottleneck, optimization |
+
+### Result Aggregation
+
+After parallel assessments complete:
+1. Rank by confidence score (highest first)
+2. Consider evidence count (more related incidents = higher priority)
+3. Generate priority ranking of recommended actions
+4. Present unified diagnosis with action sequence
+
+## Trace Integration
+
+The debugger can ingest traces from multiple sources to aid diagnosis:
+
+### Supported Trace Sources
+
+- **OpenTelemetry (OTLP)**: Distributed tracing spans
+- **Sentry**: Error events and breadcrumbs
+- **Langchain/LangSmith**: LLM operation traces
+- **Browser**: Chrome DevTools, Playwright, console logs
+
+### Using Traces for Debugging
+
+When traces are available:
+1. Correlate error traces with symptoms
+2. Review performance spans for latency issues
+3. Check LLM traces for AI-related bugs
+4. Examine browser console for frontend errors
+
+Traces are summarized to minimize token usage while preserving key diagnostic information.
+
+## Token-Efficient Retrieval
+
+The memory system uses tiered retrieval to minimize context size:
+
+### Retrieval Tiers
+
+| Tier | Token Usage | Content |
+|------|-------------|---------|
+| Summary | ~100 tokens | ID, symptom preview, category |
+| Compact | ~200 tokens | Short keys, essential fields |
+| Full | ~550 tokens | Complete incident details |
+
+### Automatic Token Budgeting
+
+Default budget: 2500 tokens
+- Patterns: 30% (750 tokens)
+- Incidents: 60% (1500 tokens)
+- Metadata: 10% (250 tokens)
+
+The system automatically selects the appropriate tier based on available budget.
 
 ## Additional Resources
 

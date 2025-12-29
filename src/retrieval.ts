@@ -397,3 +397,208 @@ function fuzzyMatch(query: string, text: string, threshold: number): number {
   );
   return distance >= threshold ? distance : 0;
 }
+
+// ============================================================================
+// TIERED RETRIEVAL - Token-optimized memory retrieval
+// ============================================================================
+
+import type {
+  TieredRetrievalConfig,
+  TieredRetrievalResult,
+} from './types';
+
+import {
+  toCompactIncident,
+  toCompactPattern,
+  generateIncidentSummary,
+  enforceTokenBudget,
+} from './storage';
+
+/**
+ * Token-optimized memory check with tiered retrieval
+ *
+ * Tiers:
+ * - 'summary': Minimal representation (~100 tokens/incident) for quick scans
+ * - 'compact': Short keys, truncated fields (~200 tokens/incident) - DEFAULT
+ * - 'full': Complete incident data (~550 tokens/incident) for detailed analysis
+ *
+ * Token budget enforcement ensures context doesn't exceed limits.
+ */
+export async function checkMemoryTiered(
+  symptom: string,
+  config: Partial<TieredRetrievalConfig> & { memoryConfig?: MemoryConfig } = {}
+): Promise<TieredRetrievalResult> {
+  const { memoryConfig, tier = 'compact', token_budget = 2500, ...retrievalConfig } = config;
+  const fullConfig = { ...DEFAULT_CONFIG, ...retrievalConfig };
+
+  // Get raw results using existing search
+  const rawResult = await checkMemory(symptom, { memoryConfig, ...fullConfig });
+
+  // Transform based on tier
+  if (tier === 'summary') {
+    return transformToSummaryTier(rawResult, token_budget);
+  }
+
+  if (tier === 'compact') {
+    return transformToCompactTier(rawResult, token_budget);
+  }
+
+  // 'full' tier - return as-is with full data
+  return {
+    confidence: rawResult.confidence,
+    tokens_used: rawResult.tokens_used,
+    has_more_details: false,
+  };
+}
+
+/**
+ * Transform results to summary tier (~100 tokens per incident)
+ */
+function transformToSummaryTier(
+  result: RetrievalResult,
+  budget: number
+): TieredRetrievalResult {
+  const summaries = result.incidents.map(generateIncidentSummary);
+  const patternSummaries = result.patterns.map(p => ({
+    id: p.pattern_id,
+    name: p.name,
+    success_rate: p.success_rate,
+  }));
+
+  // Estimate tokens (100 per summary, 50 per pattern summary)
+  const tokensPerSummary = 100;
+  const tokensPerPatternSummary = 50;
+  const maxSummaries = Math.floor((budget * 0.6) / tokensPerSummary);
+  const maxPatternSummaries = Math.floor((budget * 0.3) / tokensPerPatternSummary);
+
+  const limitedSummaries = summaries.slice(0, maxSummaries);
+  const limitedPatternSummaries = patternSummaries.slice(0, maxPatternSummaries);
+
+  const tokensUsed =
+    limitedSummaries.length * tokensPerSummary +
+    limitedPatternSummaries.length * tokensPerPatternSummary +
+    Math.floor(budget * 0.1);
+
+  return {
+    summaries: limitedSummaries,
+    pattern_summaries: limitedPatternSummaries,
+    confidence: result.confidence,
+    tokens_used: tokensUsed,
+    has_more_details: true,
+    truncated: {
+      incidents: summaries.length - limitedSummaries.length,
+      patterns: patternSummaries.length - limitedPatternSummaries.length,
+    },
+  };
+}
+
+/**
+ * Transform results to compact tier (~200 tokens per incident)
+ */
+function transformToCompactTier(
+  result: RetrievalResult,
+  budget: number
+): TieredRetrievalResult {
+  // Convert to compact format
+  const compactIncidents = result.incidents.map(toCompactIncident);
+  const compactPatterns = result.patterns.map(toCompactPattern);
+
+  // Apply token budget
+  const { limitedIncidents, limitedPatterns, tokensUsed, truncated } =
+    enforceTokenBudget(compactIncidents, compactPatterns, budget);
+
+  return {
+    incidents: limitedIncidents,
+    patterns: limitedPatterns,
+    confidence: result.confidence,
+    tokens_used: tokensUsed,
+    has_more_details: truncated.incidents > 0 || truncated.patterns > 0,
+    truncated,
+  };
+}
+
+/**
+ * Quick memory check with minimal output
+ *
+ * Returns only essential fields for rapid assessment.
+ * Useful when token budget is very tight.
+ */
+export async function quickMemoryCheck(
+  symptom: string,
+  config?: { memoryConfig?: MemoryConfig; maxResults?: number }
+): Promise<{
+  hasMatches: boolean;
+  matchCount: number;
+  topMatch?: {
+    id: string;
+    symptom: string;
+    category: string;
+    confidence: number;
+  };
+  tokensUsed: number;
+}> {
+  const result = await checkMemoryTiered(symptom, {
+    memoryConfig: config?.memoryConfig,
+    tier: 'summary',
+    token_budget: 500, // Minimal budget
+    max_results: config?.maxResults || 3,
+  });
+
+  const summaries = result.summaries || [];
+
+  return {
+    hasMatches: summaries.length > 0,
+    matchCount: summaries.length,
+    topMatch: summaries[0]
+      ? {
+          id: summaries[0].incident_id,
+          symptom: summaries[0].symptom_preview,
+          category: summaries[0].category,
+          confidence: summaries[0].confidence,
+        }
+      : undefined,
+    tokensUsed: result.tokens_used,
+  };
+}
+
+/**
+ * Get incident details on demand (lazy loading)
+ *
+ * Use this when compact/summary tier found a match and full details are needed.
+ */
+export async function getIncidentDetails(
+  incident_id: string,
+  config?: MemoryConfig
+): Promise<Incident | null> {
+  const { loadIncident } = await import('./storage');
+  return loadIncident(incident_id, config);
+}
+
+/**
+ * Get pattern details on demand (lazy loading)
+ */
+export async function getPatternDetails(
+  pattern_id: string,
+  config?: MemoryConfig
+): Promise<Pattern | null> {
+  const { loadPattern } = await import('./storage');
+  return loadPattern(pattern_id, config);
+}
+
+/**
+ * Estimate token usage for different retrieval tiers
+ */
+export function estimateTokensForTier(
+  incidentCount: number,
+  patternCount: number,
+  tier: 'summary' | 'compact' | 'full'
+): number {
+  const multipliers = {
+    summary: { incident: 100, pattern: 50 },
+    compact: { incident: 200, pattern: 120 },
+    full: { incident: 550, pattern: 250 },
+  };
+
+  const m = multipliers[tier];
+  return incidentCount * m.incident + patternCount * m.pattern + 50; // +50 for overhead
+}

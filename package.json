@@ -1,7 +1,7 @@
 {
   "name": "@tyroneross/claude-code-debugger",
-  "version": "1.3.0",
-  "description": "Debugging memory system for Claude Code - never solve the same bug twice",
+  "version": "1.4.0",
+  "description": "Debugging memory system with parallel assessment, trace ingestion, and token optimization - never solve the same bug twice",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "exports": {
@@ -37,7 +37,12 @@
     "claude-code",
     "incident-tracking",
     "pattern-recognition",
-    "developer-tools"
+    "developer-tools",
+    "opentelemetry",
+    "traces",
+    "parallel-assessment",
+    "sentry",
+    "langchain"
   ],
   "author": "Tyrone Ross",
   "license": "MIT",

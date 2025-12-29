@@ -85,3 +85,85 @@ export function displayConfig(config?: MemoryConfig): void {
   console.log(`   Similarity threshold: ${(cfg.defaultSimilarityThreshold * 100).toFixed(0)}%`);
   console.log(`   Max results: ${cfg.defaultMaxResults}\n`);
 }
+
+// ============================================================================
+// TOKEN BUDGET CONFIGURATION
+// ============================================================================
+
+import type { TokenBudget } from './types';
+
+/**
+ * Token configuration for context injection
+ */
+export interface TokenConfig {
+  /** Total token budget for memory context */
+  budget: TokenBudget;
+  /** Default retrieval tier */
+  defaultTier: 'summary' | 'compact' | 'full';
+  /** Auto-adjust tier if budget exceeded */
+  autoAdjust: boolean;
+}
+
+/**
+ * Get token configuration from environment variables
+ *
+ * Environment variables:
+ * - CLAUDE_MEMORY_TOKEN_BUDGET: Total token budget (default: 2500)
+ * - CLAUDE_MEMORY_TIER: Default retrieval tier (summary|compact|full, default: compact)
+ * - CLAUDE_MEMORY_AUTO_ADJUST: Auto-adjust tier if over budget (true|false, default: true)
+ */
+export function getTokenConfig(overrides?: Partial<TokenConfig>): TokenConfig {
+  const totalBudget = parseInt(process.env.CLAUDE_MEMORY_TOKEN_BUDGET || '2500', 10);
+  const tier = (process.env.CLAUDE_MEMORY_TIER as 'summary' | 'compact' | 'full') || 'compact';
+  const autoAdjust = process.env.CLAUDE_MEMORY_AUTO_ADJUST !== 'false';
+
+  const config: TokenConfig = {
+    budget: {
+      total: totalBudget,
+      allocated: {
+        patterns: Math.floor(totalBudget * 0.3),
+        incidents: Math.floor(totalBudget * 0.6),
+        metadata: Math.floor(totalBudget * 0.1),
+      },
+      perItem: {
+        pattern: 120,
+        incident: 200,
+        summary: 100,
+      },
+    },
+    defaultTier: tier,
+    autoAdjust,
+    ...overrides,
+  };
+
+  return config;
+}
+
+/**
+ * Display token configuration
+ */
+export function displayTokenConfig(config?: TokenConfig): void {
+  const cfg = config || getTokenConfig();
+
+  console.log('🎯 Token Configuration:\n');
+  console.log(`   Total budget: ${cfg.budget.total} tokens`);
+  console.log(`   Patterns allocation: ${cfg.budget.allocated.patterns} tokens`);
+  console.log(`   Incidents allocation: ${cfg.budget.allocated.incidents} tokens`);
+  console.log(`   Default tier: ${cfg.defaultTier}`);
+  console.log(`   Auto-adjust: ${cfg.autoAdjust ? 'enabled' : 'disabled'}\n`);
+}
+
+/**
+ * Get paths for trace storage
+ */
+export function getTracePaths(config?: MemoryConfig) {
+  const cfg = config || getConfig();
+
+  return {
+    traces: path.join(cfg.memoryPath, 'traces'),
+    index: path.join(cfg.memoryPath, 'traces', 'index.json'),
+    collections: path.join(cfg.memoryPath, 'traces', 'collections'),
+    raw: path.join(cfg.memoryPath, 'traces', 'raw'),
+    correlations: path.join(cfg.memoryPath, 'correlations'),
+  };
+}

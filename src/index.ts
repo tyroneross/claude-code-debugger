@@ -69,3 +69,66 @@ export { batchReviewIncomplete, batchExtractPatterns, batchCleanup } from './bat
 
 // Audit Trail Mining
 export { mineAuditTrail, previewAuditMining } from './audit-miner';
+
+// Token-Efficient Retrieval
+export {
+  checkMemoryTiered,
+  quickMemoryCheck,
+  getIncidentDetails,
+  getPatternDetails
+} from './retrieval';
+
+export type {
+  CompactIncident,
+  CompactPattern,
+  IncidentSummary,
+  TokenBudget,
+  TieredRetrievalConfig,
+  TieredRetrievalResult
+} from './types';
+
+// Parallel Retrieval
+export {
+  parallelSearch,
+  parallelPatternMatch,
+  parallelMemoryCheck
+} from './parallel-retrieval';
+
+// Assessment Orchestration
+export {
+  detectDomains,
+  selectDomainsForAssessment,
+  generateAssessorPrompts,
+  parseAssessmentResponse,
+  rankAssessments,
+  createOrchestrationResult,
+  formatOrchestrationResult,
+  prepareOrchestration
+} from './assessment-orchestrator';
+
+export type {
+  Domain,
+  DomainPriority,
+  DomainDetection,
+  OrchestrationConfig
+} from './assessment-orchestrator';
+
+export type {
+  DomainAssessment,
+  OrchestrationResult,
+  AggregatedResult,
+  ScoredItem
+} from './types';
+
+// Result Aggregation
+export {
+  scoreAssessment,
+  scoreIncident,
+  scorePattern,
+  aggregateResults,
+  formatAggregatedResults,
+  createQuickSummary
+} from './result-aggregator';
+
+// Trace Ingestion (v1.4.0)
+export * from './traces';
