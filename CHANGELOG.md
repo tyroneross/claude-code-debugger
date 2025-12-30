@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-12-28
+
+### Added
+- **Parallel Assessment System**: Domain-specific assessors run concurrently for complex debugging
+  - `/assess` command spawns multiple assessor agents in parallel
+  - Domain-specific agents: database, frontend, API, performance
+  - Automatic domain detection from symptom keywords
+  - Result aggregation with confidence-based ranking
+  - Priority ranking for recommended actions
+- **Trace Ingestion Framework**: Ingest traces from external observability tools
+  - OpenTelemetry adapter for distributed tracing
+  - Sentry adapter for error tracking integration
+  - LangChain adapter for LLM observability
+  - Browser adapter for performance traces
+  - Token-efficient trace summarization
+  - Cross-reference with debugging memory
+- **Parallel Retrieval**: Concurrent memory search across patterns and incidents
+  - `parallelSearch()` - parallel keyword search
+  - `parallelPatternMatch()` - concurrent pattern matching
+  - `parallelMemoryCheck()` - unified parallel memory check
+- **Assessment Orchestration**: Coordinate multi-domain debugging analysis
+  - `detectDomains()` - identify relevant domains from symptom
+  - `generateAssessorPrompts()` - create domain-specific prompts
+  - `aggregateResults()` - merge and rank assessment results
+- **Plugin Marketplace Support**: Install via Claude Code plugin marketplace
+
+### Changed
+- Plugin structure updated with agents directory
+- Enhanced type exports for assessment and trace types
+- Improved token efficiency for large codebases
+
+## [1.3.0] - 2025-12-27
+
+### Added
+- **Claude Code Plugin Infrastructure**: Full plugin support for Claude Code
+  - Plugin manifest (`plugin.json`) with commands, skills, hooks, agents
+  - Slash commands: `/debugger`, `/debugger-status`, `/debugger-scan`, `/feedback`, `/update`
+  - Auto-activating debugging skill
+  - Session stop hook for automatic audit mining
+- **Marketplace Configuration**: Plugin marketplace integration
+  - `marketplace.json` for plugin distribution
+  - Installation via `/plugin marketplace add`
+
+### Fixed
+- Comprehensive null safety for incidents across codebase
+- Null check for `incident.symptom` in all search operations
+
+## [1.2.5] - 2025-12-02
+
+### Fixed
+- CI/CD: Fixed trusted publishing configuration
+
+## [1.2.4] - 2025-12-02
+
+### Fixed
+- CI/CD: Reverted to OIDC trusted publishers
+
+## [1.2.3] - 2025-12-02
+
+### Fixed
+- CI/CD: Auto-publish on tag push workflow
+- Updated README with slash commands documentation
+
+## [1.2.2] - 2025-12-02
+
+### Fixed
+- CI/CD: Trusted publisher workflow updates
+
 ## [1.2.1] - 2025-12-02
 
 ### Fixed

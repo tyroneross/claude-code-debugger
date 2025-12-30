@@ -6,14 +6,29 @@ A debugging memory system for Claude Code that automatically learns from past in
 
 ## Features
 
+### Core Features
 - **Incident Tracking**: Store complete debugging incidents with symptoms, root causes, fixes, and verification
-- **Interactive Verification** ✨ NEW: Guided prompts to ensure high-quality incident documentation
+- **Interactive Verification**: Guided prompts to ensure high-quality incident documentation
 - **Quality Scoring**: Automatic calculation of incident completeness (0-100%)
-- **Auto-Pattern Extraction** ✨ NEW: Automatically extracts patterns after storing 3+ similar incidents
-- **Enhanced Search** ✨ NEW: Multi-strategy search (exact → tag → fuzzy → semantic)
-- **Batch Operations** ✨ NEW: Review incomplete incidents, extract patterns, cleanup old data
+- **Auto-Pattern Extraction**: Automatically extracts patterns after storing 3+ similar incidents
+- **Enhanced Search**: Multi-strategy search (exact → tag → fuzzy → semantic)
+- **Batch Operations**: Review incomplete incidents, extract patterns, cleanup old data
 - **Smart Retrieval**: Find similar incidents using keyword-based similarity matching
 - **Audit Trail Mining**: Recover incidents from `.claude/audit` files when manual storage is missed
+
+### v1.4.0 Features
+- **Parallel Assessment** ✨ NEW: Multi-domain analysis with concurrent assessor agents
+  - Domain-specific assessors (database, frontend, API, performance)
+  - Automatic domain detection from symptom keywords
+  - Confidence-based result ranking
+- **Trace Ingestion** ✨ NEW: Ingest traces from external observability tools
+  - OpenTelemetry, Sentry, LangChain, Browser adapters
+  - Token-efficient trace summarization
+  - Cross-reference with debugging memory
+- **Parallel Retrieval** ✨ NEW: Concurrent memory search for faster results
+- **Plugin Marketplace**: Install directly via Claude Code plugin marketplace
+
+### Storage & Integration
 - **Dual Storage Modes**:
   - **Local mode**: Each project has its own `.claude/memory/`
   - **Shared mode**: All projects share `~/.claude-code-debugger/` for cross-project learning
@@ -81,7 +96,8 @@ After installation, these slash commands are automatically available in Claude C
 | `/debugger "symptom"` | Search past bugs for similar issues before debugging |
 | `/debugger` | Show recent bugs and pick one to debug |
 | `/debugger-status` | Show memory statistics |
-| `/debugger-mine` | Mine audit trail for recent debugging sessions |
+| `/debugger-scan` | Scan recent sessions for debugging incidents |
+| `/assess "symptom"` | Run parallel domain assessment (database, frontend, API, performance) |
 
 **Examples:**
 ```
@@ -94,9 +110,67 @@ After installation, these slash commands are automatically available in Claude C
 /debugger-status
 → "4 incidents stored, 0 patterns, 4 KB used"
 
-/debugger-mine
-→ Extracts debugging sessions from last 7 days into memory
+/debugger-scan
+→ Scans recent sessions for debugging incidents
+
+/assess "search is slow and returns wrong results"
+→ Runs parallel assessment across database, frontend, API, performance domains
+→ Returns prioritized list of potential causes with confidence scores
 ```
+
+### Parallel Assessment (v1.4.0)
+
+For complex issues that span multiple domains, use parallel assessment:
+
+```bash
+/assess "search is slow and returns wrong results"
+```
+
+This spawns multiple assessor agents in parallel:
+- **Database Assessor**: Checks for query issues, missing indexes, schema problems
+- **Frontend Assessor**: Analyzes React/component issues, state management
+- **API Assessor**: Reviews endpoint logic, middleware, authentication
+- **Performance Assessor**: Identifies bottlenecks, memory leaks, optimization opportunities
+
+Results are aggregated and ranked by confidence score, giving you a prioritized action list.
+
+### Trace Ingestion (v1.4.0)
+
+Import traces from external observability tools to enrich your debugging memory:
+
+```typescript
+import {
+  ingestOpenTelemetryTrace,
+  ingestSentryEvent,
+  ingestLangChainTrace,
+  ingestBrowserTrace,
+  summarizeTrace
+} from '@tyroneross/claude-code-debugger';
+
+// Ingest OpenTelemetry trace
+await ingestOpenTelemetryTrace(otelSpan, {
+  correlateWithMemory: true,
+  summarize: true
+});
+
+// Ingest Sentry error event
+await ingestSentryEvent(sentryEvent, {
+  extractIncident: true,
+  minSeverity: 'error'
+});
+
+// Summarize trace for token efficiency
+const summary = await summarizeTrace(trace, {
+  maxTokens: 500,
+  preserveErrors: true
+});
+```
+
+Supported adapters:
+- **OpenTelemetry**: Distributed tracing spans
+- **Sentry**: Error events and breadcrumbs
+- **LangChain**: LLM call traces
+- **Browser**: Performance timing and resource traces
 
 ### CLI Usage
 

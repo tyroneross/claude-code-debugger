@@ -1,14 +1,53 @@
-# Don't publish these to npm
+# Source files (compiled to dist/)
 src/
 cli/
+
+# Test files
 tests/
+test-*.ts
+test-*.js
+*.test.ts
+*.spec.ts
+test-memory-search.sh
+demo-*.ts
+
+# Development documentation (README.md is included via files field)
+BATCH-OPERATIONS.md
+CHANGELOG.md
+CLAUDE.md
+ENHANCED_SEARCH_FEATURE.md
+FEATURE_*.md
+IMPLEMENTATION_*.md
+SEARCH_STRATEGIES.md
+SETUP-COMPLETE.md
+docs/
+
+# Build artifacts and config
 tsconfig.json
+*.tgz
+
+# Git and GitHub
 .git
 .gitignore
 .github
-*.test.ts
-*.spec.ts
+
+# OS files
 .DS_Store
-node_modules
+Thumbs.db
+
+# Environment
 .env
 .env.*
+
+# Dependencies (installed fresh)
+node_modules
+
+# Editor files
+*.swp
+*.swo
+.vscode
+.idea
+
+# Memory storage (user data, not package data)
+memory/
+.claude/
