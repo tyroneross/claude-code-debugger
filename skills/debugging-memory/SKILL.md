@@ -1,7 +1,7 @@
 ---
 name: debugging-memory
-description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Provides memory-first debugging workflow that checks past incidents before investigating.
-version: 1.1.0
+description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Also activates when spawning subagents for debugging tasks, using Task tool for bug investigation, or coordinating multiple agents on a debugging problem. Provides memory-first debugging workflow that checks past incidents before investigating.
+version: 1.2.0
 ---
 
 # Debugging Memory Workflow
@@ -232,7 +232,94 @@ For detailed guidance, consult:
 
 - **`references/incident-documentation.md`** - Complete guide to documenting incidents
 - **`references/pattern-extraction.md`** - How patterns are extracted and used
+- **`references/subagent-integration.md`** - How to integrate with custom subagents
 - **`examples/incident-example.json`** - Sample high-quality incident
+
+## Subagent Integration
+
+When debugging involves subagents (your own or from other plugins), follow these guidelines to ensure debugging memory is utilized.
+
+### Automatic Behavior
+
+**Before spawning debugging-related subagents:**
+1. Search debugging memory first: `npx @tyroneross/claude-code-debugger debug "<symptom>"`
+2. Pass relevant context to the subagent in its prompt
+3. Include any matching incidents or patterns found
+
+**Example subagent prompt with debugging context:**
+```
+Investigate the database timeout issue.
+
+DEBUGGING MEMORY CONTEXT:
+- Found 2 similar incidents: INC_20241215_db_timeout, INC_20241201_pool_exhaust
+- Pattern PTN_connection_pool suggests checking pool size and idle timeout
+- Previous fix: Increased pool size from 10 to 25 in DATABASE_URL
+
+Start your investigation considering this prior knowledge.
+```
+
+### When Subagents Cannot Access Debugging Memory
+
+**Inform the user** when debugging memory cannot be used with subagents:
+
+1. **External MCP tools**: "Note: The debugging subagent is using external MCP tools that cannot access local debugging memory. I searched memory beforehand and found [X matching incidents / no matches]."
+
+2. **Third-party agents**: "Note: This third-party debugging agent doesn't have access to your project's debugging memory. Consider using `/debugger` first to check for similar past issues."
+
+3. **Sandboxed environments**: "Note: The subagent runs in a sandboxed environment without access to debugging memory. I've pre-loaded relevant context from [X] matching incidents."
+
+### Integrating Debugger Into Your Own Subagents
+
+If you create custom debugging subagents, include this in their system prompt:
+
+```markdown
+## Debugging Memory Integration
+
+Before investigating, check the debugging memory:
+
+\`\`\`bash
+npx @tyroneross/claude-code-debugger debug "<symptom>"
+\`\`\`
+
+Use results to:
+- Skip re-investigation of known issues (confidence >70%)
+- Use past fixes as starting points (confidence 40-70%)
+- Document new findings after resolution
+
+After fixing, document the incident:
+\`\`\`bash
+npx @tyroneross/claude-code-debugger add
+\`\`\`
+```
+
+### Subagent Tool Requirements
+
+For full debugging memory access, subagents need:
+- `Bash` tool - to run CLI commands
+- `Read` tool - to examine incident files (optional but helpful)
+
+If a subagent lacks `Bash` access, it cannot query debugging memory directly. In this case:
+1. Query memory yourself before spawning the subagent
+2. Include relevant findings in the subagent prompt
+3. Document any new findings after the subagent completes
+
+### Coordinating Multiple Debugging Subagents
+
+When using parallel assessment (`/assess`) or multiple debugging subagents:
+
+1. **Pre-query memory once** before spawning agents
+2. **Distribute context** - each agent gets relevant subset
+3. **Aggregate findings** - collect new insights from all agents
+4. **Store unified incident** - document the combined diagnosis
+
+```
+Example flow:
+1. Search: npx @tyroneross/claude-code-debugger debug "app crashing on login"
+2. Spawn parallel: database-assessor, api-assessor, frontend-assessor
+   - Each receives: symptom + relevant past incidents
+3. Collect: assessments from all agents
+4. Store: unified incident with root cause from winning assessment
+```
 
 ## Best Practices
 
@@ -241,3 +328,5 @@ For detailed guidance, consult:
 3. **Use descriptive symptoms** - Better matching requires good descriptions
 4. **Include verification status** - Helps prioritize trusted solutions
 5. **Run periodic scans** - Capture debugging sessions from audit trail
+6. **Pass context to subagents** - Don't let debugging knowledge stay siloed
+7. **Inform users of limitations** - Be transparent when memory can't be accessed
