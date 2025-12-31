@@ -163,6 +163,69 @@ The memory system calculates a quality score (0-100%) based on:
 - 50-74%: Good - useful but may need verification
 - <50%: Fair - stored but lower priority in results
 
+## How Claude Code Stores Incidents
+
+Claude Code should **directly write JSON files** to store incidents. No CLI command needed.
+
+### Step-by-Step
+
+**1. Create directory (if needed):**
+```bash
+mkdir -p .claude/memory/incidents
+```
+
+**2. Generate incident ID:**
+```
+INC_YYYYMMDD_HHMMSS_xxxx
+```
+Example: `INC_20241231_143052_a7b2` where:
+- `20241231` = date (Dec 31, 2024)
+- `143052` = time (14:30:52)
+- `a7b2` = 4 random alphanumeric chars
+
+**3. Write JSON file:**
+```
+.claude/memory/incidents/INC_20241231_143052_a7b2.json
+```
+
+**4. Include required fields:**
+```json
+{
+  "incident_id": "INC_20241231_143052_a7b2",
+  "timestamp": 1735654252000,
+  "symptom": "Description of the bug",
+  "root_cause": {
+    "description": "Technical explanation",
+    "file": "path/to/file.ts",
+    "category": "logic",
+    "confidence": 0.85
+  },
+  "fix": {
+    "approach": "How it was fixed",
+    "changes": []
+  },
+  "tags": ["searchable", "keywords"],
+  "quality_score": 0.75
+}
+```
+
+### When to Store
+
+- **After fixing a bug** - Immediately document while context is fresh
+- **After debugging session** - Even if fix wasn't found, document the investigation
+- **After pattern identified** - If you notice recurring issues
+
+### Workflow Example
+
+```
+1. Bug reported: "Search not working"
+2. Search memory: npx @tyroneross/claude-code-debugger debug "search not working"
+3. Found match? → Apply fix
+   No match? → Investigate and fix
+4. Write incident JSON to .claude/memory/incidents/INC_xxx.json
+5. Future searches will find this incident
+```
+
 ## Storage Modes
 
 ### Local Mode (default)

@@ -55,9 +55,7 @@ npx @tyroneross/claude-code-debugger debug "<symptom description>"
 - Low/no match (<40%): Investigate fresh, document afterward
 
 **After fixing a bug:**
-\`\`\`bash
-npx @tyroneross/claude-code-debugger add
-\`\`\`
+Write incident JSON to `.claude/memory/incidents/INC_YYYYMMDD_HHMMSS_xxxx.json`
 
 This ensures fixes are remembered for future similar issues.
 ```
@@ -119,12 +117,14 @@ Given this prior knowledge, focus your investigation on:
 
 **Step 4: Store new findings**
 
-After subagent completes, if new root cause discovered:
+After subagent completes, if new root cause discovered, write incident JSON:
 
 ```bash
-npx @tyroneross/claude-code-debugger add
-# Follow interactive prompts to document the incident
+mkdir -p .claude/memory/incidents
+# Then write JSON file: .claude/memory/incidents/INC_YYYYMMDD_HHMMSS_xxxx.json
 ```
+
+See `skills/debugging-memory/examples/incident-example.json` for full schema.
 
 ## Multi-Agent Coordination
 

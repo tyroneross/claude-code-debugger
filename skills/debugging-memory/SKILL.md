@@ -74,13 +74,85 @@ Confirm the fix works:
 
 ## Incident Documentation
 
-After fixing a bug, document it for future retrieval. A high-quality incident includes:
+After fixing a bug, document it for future retrieval.
 
-### Required Fields
+### Manual Incident Storage (Preferred Method)
 
-- **Symptom**: User-facing description of the bug
-- **Root Cause**: Technical explanation with confidence score
-- **Fix**: Approach and specific file changes
+**Claude Code should directly write incident files** to `.claude/memory/incidents/` using the Write tool. No CLI command needed.
+
+**Step 1: Generate incident ID**
+```
+INC_YYYYMMDD_HHMMSS_xxxx
+```
+Where `xxxx` is 4 random alphanumeric characters. Example: `INC_20241231_143052_a7b2`
+
+**Step 2: Write JSON file**
+```bash
+.claude/memory/incidents/INC_20241231_143052_a7b2.json
+```
+
+**Minimal incident structure:**
+```json
+{
+  "incident_id": "INC_20241231_143052_a7b2",
+  "timestamp": 1735654252000,
+  "symptom": "User-facing description of the bug",
+  "root_cause": {
+    "description": "Technical explanation of why the bug occurred",
+    "file": "path/to/problematic/file.ts",
+    "category": "logic|config|dependency|performance|react-hooks",
+    "confidence": 0.85
+  },
+  "fix": {
+    "approach": "What was done to fix it",
+    "changes": [
+      {
+        "file": "path/to/file.ts",
+        "lines_changed": 10,
+        "change_type": "modify|add|delete",
+        "summary": "Brief description of change"
+      }
+    ]
+  },
+  "verification": {
+    "status": "verified|unverified",
+    "regression_tests_passed": true,
+    "success_criteria_met": true
+  },
+  "tags": ["relevant", "keywords", "for", "search"],
+  "files_changed": ["list/of/all/files.ts"],
+  "quality_score": 0.75
+}
+```
+
+**Step 3: Ensure directory exists**
+Before writing, create the directory if needed:
+```bash
+mkdir -p .claude/memory/incidents
+```
+
+### Automatic Capture (Session End)
+
+The Stop hook automatically mines the session audit trail when a session ends:
+```bash
+npx @tyroneross/claude-code-debugger mine --days 1 --store
+```
+
+**Audit Trail Limitations:**
+- Audit trail is written by Claude Code at session end, not during the session
+- Location: `.claude/audit/` (markdown files from completed sessions)
+- Mining only works on previously completed sessions
+- **For mid-session capture: Always use manual storage above**
+
+**When mining returns 0 incidents:**
+1. No previous sessions have completed in this project
+2. Previous sessions didn't involve debugging work
+3. The audit directory doesn't exist yet (first session)
+
+**Recommended workflow:**
+- Don't rely on mining - always manually store important incidents
+- Mining is a fallback for sessions where manual storage was forgotten
+- Use `/debugger-scan` to check what can be mined from past sessions
 
 ### Quality Indicators
 
@@ -286,9 +358,9 @@ Use results to:
 - Use past fixes as starting points (confidence 40-70%)
 - Document new findings after resolution
 
-After fixing, document the incident:
-\`\`\`bash
-npx @tyroneross/claude-code-debugger add
+After fixing, document the incident by writing a JSON file to:
+\`\`\`
+.claude/memory/incidents/INC_YYYYMMDD_HHMMSS_xxxx.json
 \`\`\`
 ```
 
