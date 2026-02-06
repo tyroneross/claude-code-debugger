@@ -1,0 +1,246 @@
+{
+  "timestamp": "2026-02-06T07:00:45.349Z",
+  "dimensions": [
+    {
+      "name": "Retrieval Accuracy",
+      "weight": 0.25,
+      "score": 44,
+      "maxScore": 50,
+      "details": [
+        {
+          "name": "Exact symptom substring match",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Found 1 incidents, top match correct",
+          "durationMs": 7
+        },
+        {
+          "name": "Keyword-based match (rephrased)",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Found database incident via keyword match",
+          "durationMs": 4
+        },
+        {
+          "name": "Tag-based enhanced search",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Found via tag match, score: 0.90",
+          "durationMs": 4
+        },
+        {
+          "name": "Irrelevant query returns no false positives",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Correctly returned 0 results for irrelevant query",
+          "durationMs": 4
+        },
+        {
+          "name": "Partial match retrieval",
+          "passed": false,
+          "score": 4,
+          "maxScore": 10,
+          "notes": "Found 1 incidents but wrong category",
+          "durationMs": 3
+        }
+      ]
+    },
+    {
+      "name": "Semantic Recall",
+      "weight": 0.2,
+      "score": 50,
+      "maxScore": 50,
+      "details": [
+        {
+          "name": "Synonym: \"component keeps refreshing\" ≈ \"infinite re-render loop\"",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Category match found (react-hooks), match type: tag",
+          "durationMs": 3
+        },
+        {
+          "name": "Paraphrase: \"DB stops responding\" ≈ \"connection pool exhausted\"",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Category match found (database), match type: tag",
+          "durationMs": 3
+        },
+        {
+          "name": "Domain shift: \"XSS via form input\" ≈ \"special characters in name field\"",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Category match found (api), match type: tag",
+          "durationMs": 3
+        },
+        {
+          "name": "Jargon variation: \"SSR content mismatch\" ≈ \"hydration mismatch\"",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Category match found (react-hooks), match type: fuzzy",
+          "durationMs": 2
+        },
+        {
+          "name": "Casual language: \"app eats all the RAM\" ≈ \"memory leak\"",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Category match found (performance), match type: tag",
+          "durationMs": 3
+        }
+      ]
+    },
+    {
+      "name": "Token Efficiency",
+      "weight": 0.15,
+      "score": 40,
+      "maxScore": 40,
+      "details": [
+        {
+          "name": "Summary tier respects 500-token budget",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Used 150 tokens (budget: 500)",
+          "durationMs": 4
+        },
+        {
+          "name": "Compact tier uses fewer tokens than full",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Compact: 450 tokens, Full: 600 tokens (75% of full)",
+          "durationMs": 7
+        },
+        {
+          "name": "Quick check under 200 tokens",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Used 150 tokens",
+          "durationMs": 3
+        },
+        {
+          "name": "Tight budget retains at least 1 result",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Tight budget: 1 results, Loose: 1 results",
+          "durationMs": 8
+        }
+      ]
+    },
+    {
+      "name": "Pattern Extraction",
+      "weight": 0.15,
+      "score": 35,
+      "maxScore": 35,
+      "details": [
+        {
+          "name": "Extracts pattern from 4+ similar incidents",
+          "passed": true,
+          "score": 15,
+          "maxScore": 15,
+          "notes": "Extracted 1 pattern(s): React Hook Dependency Issues",
+          "durationMs": 6
+        },
+        {
+          "name": "Pattern has complete structure",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "5/5 required fields present",
+          "durationMs": 0
+        },
+        {
+          "name": "Auto-extraction triggers on threshold",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Auto-extracted: PTN_REACT_HOOKS_COMMON_FIX",
+          "durationMs": 13
+        }
+      ]
+    },
+    {
+      "name": "Memory Freshness",
+      "weight": 0.15,
+      "score": 25,
+      "maxScore": 25,
+      "details": [
+        {
+          "name": "Recent incident ranks above old incident",
+          "passed": true,
+          "score": 15,
+          "maxScore": 15,
+          "notes": "Recent at position 0, old at position 1",
+          "durationMs": 7
+        },
+        {
+          "name": "Old incidents still accessible",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Old incident found when specifically searched",
+          "durationMs": 7
+        }
+      ]
+    },
+    {
+      "name": "Hook Coverage & Audit Mining",
+      "weight": 0.1,
+      "score": 30,
+      "maxScore": 30,
+      "details": [
+        {
+          "name": "Session-stop hook configured",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "Stop hook configured with 1 matcher(s)",
+          "durationMs": 1
+        },
+        {
+          "name": "PreToolUse hook for proactive warnings (MISSING)",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "PreToolUse hook present",
+          "durationMs": 0
+        },
+        {
+          "name": "PostToolUse error capture hook (MISSING)",
+          "passed": true,
+          "score": 10,
+          "maxScore": 10,
+          "notes": "PostToolUse hook present",
+          "durationMs": 1
+        }
+      ]
+    }
+  ],
+  "overallScore": 39,
+  "overallMax": 40.5,
+  "grade": "A",
+  "weakSpots": [],
+  "strengths": [
+    "Retrieval Accuracy: 88%",
+    "Semantic Recall: 100%",
+    "Token Efficiency: 100%",
+    "Pattern Extraction: 100%",
+    "Memory Freshness: 100%",
+    "Hook Coverage & Audit Mining: 100%"
+  ],
+  "recommendations": [
+    "ADAPTIVE TOKEN BUDGETS: Detect model context capacity (Opus 4.6 = 1M tokens) and scale token budgets accordingly. Current fixed 2500-token budget is conservative for large-context models.",
+    "OBSERVATION MASKING: Per JetBrains NeurIPS 2025 research, mask large observation payloads (stack traces, code blocks) rather than truncating the reasoning chain. Current compact tier truncates uniformly.",
+    "KV-CACHE STABILITY: Ensure skill auto-injection uses a stable prefix without dynamic timestamps. Per Manus research, this can achieve 10x cost reduction on cached prefixes."
+  ]
+}

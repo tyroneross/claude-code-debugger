@@ -118,6 +118,13 @@ function groupByCategory(incidents: Incident[]): Record<string, Incident[]> {
 
 /**
  * Calculate commonality among incidents
+ *
+ * Improved scoring (v1.5.0):
+ * - Lowered tag overlap threshold from 60% to 40% (catches varied tag sets)
+ * - Added category coherence signal (all same category = strong signal)
+ * - Added symptom keyword overlap signal
+ * - Better weighting: category coherence is the strongest signal,
+ *   followed by tag overlap, then file overlap and density
  */
 function calculateCommonality(incidents: Incident[]): {
   score: number;
@@ -128,7 +135,7 @@ function calculateCommonality(incidents: Incident[]): {
     return { score: 0, common_tags: [], common_files: [] };
   }
 
-  // Find tags that appear in most incidents
+  // Find tags that appear in multiple incidents (lowered from 60% to 40%)
   const tagCounts = new Map<string, number>();
   for (const inc of incidents) {
     for (const tag of (inc.tags ?? [])) {
@@ -136,7 +143,7 @@ function calculateCommonality(incidents: Incident[]): {
     }
   }
 
-  const threshold = Math.ceil(incidents.length * 0.6); // 60% of incidents
+  const threshold = Math.max(2, Math.ceil(incidents.length * 0.4));
   const common_tags = Array.from(tagCounts.entries())
     .filter(([_, count]) => count >= threshold)
     .map(([tag, _]) => tag);
@@ -150,18 +157,40 @@ function calculateCommonality(incidents: Incident[]): {
   }
 
   const common_files = Array.from(fileCounts.entries())
-    .filter(([_, count]) => count >= 2) // At least 2 incidents
+    .filter(([_, count]) => count >= 2)
     .map(([file, _]) => file);
 
-  // Calculate overall commonality score
-  // React-hooks: 6 common tags / 9 total = 67% → good pattern!
-  // Error-handling: 3 common tags / 7 total = 43% → decent pattern
-  const tag_similarity = common_tags.length / Math.max(tagCounts.size, 1);
-  const file_overlap = common_files.length > 0 ? 0.15 : 0;
-  const incident_density = incidents.length >= 5 ? 0.15 : (incidents.length >= 3 ? 0.1 : 0);
+  // Category coherence: if all incidents share the same root_cause.category,
+  // that's the strongest signal they belong to the same pattern
+  const categories = incidents.map(i => i.root_cause?.category).filter(Boolean);
+  const uniqueCategories = new Set(categories);
+  const categoryCoherence = uniqueCategories.size === 1 ? 0.4 : (uniqueCategories.size <= 2 ? 0.2 : 0);
 
-  // More generous scoring: high tag similarity is the main signal
-  const score = (tag_similarity * 0.7) + file_overlap + incident_density;
+  // Tag overlap ratio (more generous denominator: average tags per incident)
+  const avgTagsPerIncident = incidents.reduce((s, i) => s + (i.tags?.length || 0), 0) / incidents.length;
+  const tagOverlapRatio = common_tags.length / Math.max(avgTagsPerIncident, 1);
+  const tagScore = Math.min(tagOverlapRatio, 1.0) * 0.3;
+
+  // Symptom keyword overlap: extract keywords from all symptoms and measure pairwise overlap
+  const symptomKeywordSets = incidents.map(i =>
+    new Set((i.symptom || '').toLowerCase().split(/\s+/).filter(w => w.length > 3))
+  );
+  let pairwiseOverlap = 0;
+  let pairCount = 0;
+  for (let i = 0; i < symptomKeywordSets.length; i++) {
+    for (let j = i + 1; j < symptomKeywordSets.length; j++) {
+      const intersection = new Set([...symptomKeywordSets[i]].filter(x => symptomKeywordSets[j].has(x)));
+      const union = new Set([...symptomKeywordSets[i], ...symptomKeywordSets[j]]);
+      pairwiseOverlap += union.size > 0 ? intersection.size / union.size : 0;
+      pairCount++;
+    }
+  }
+  const symptomSimilarity = pairCount > 0 ? (pairwiseOverlap / pairCount) * 0.15 : 0;
+
+  const file_overlap = common_files.length > 0 ? 0.1 : 0;
+  const incident_density = incidents.length >= 5 ? 0.1 : (incidents.length >= 3 ? 0.05 : 0);
+
+  const score = categoryCoherence + tagScore + symptomSimilarity + file_overlap + incident_density;
 
   return {
     score: Math.min(score, 1.0),

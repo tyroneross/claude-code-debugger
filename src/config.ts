@@ -140,6 +140,71 @@ export function getTokenConfig(overrides?: Partial<TokenConfig>): TokenConfig {
 }
 
 /**
+ * Detect model context capacity and return an appropriate token budget multiplier.
+ *
+ * Reads CLAUDE_MODEL or ANTHROPIC_MODEL env vars to detect the active model.
+ * Opus 4.5/4.6 with 1M context can use much larger budgets than Sonnet/Haiku.
+ *
+ * Returns a multiplier: 1x (default), 2x (large context), 4x (1M context).
+ */
+export function detectContextMultiplier(): number {
+  const model = (
+    process.env.CLAUDE_MODEL ||
+    process.env.ANTHROPIC_MODEL ||
+    process.env.MODEL_ID ||
+    ''
+  ).toLowerCase();
+
+  // Opus 4.5/4.6 with 1M token context
+  if (model.includes('opus-4') || model.includes('opus_4')) {
+    return 4;
+  }
+
+  // Sonnet 4/4.5 with 200k context
+  if (model.includes('sonnet-4') || model.includes('sonnet_4') || model.includes('sonnet-3.5')) {
+    return 2;
+  }
+
+  // Haiku or unknown - conservative budget
+  return 1;
+}
+
+/**
+ * Get adaptive token configuration.
+ *
+ * Combines explicit config with model-aware scaling.
+ * Override with CLAUDE_MEMORY_TOKEN_BUDGET env var for manual control.
+ */
+export function getAdaptiveTokenConfig(overrides?: Partial<TokenConfig>): TokenConfig {
+  // If user explicitly set a budget, respect it
+  if (process.env.CLAUDE_MEMORY_TOKEN_BUDGET) {
+    return getTokenConfig(overrides);
+  }
+
+  const multiplier = detectContextMultiplier();
+  const baseBudget = 2500;
+  const adaptiveBudget = baseBudget * multiplier;
+
+  return getTokenConfig({
+    budget: {
+      total: adaptiveBudget,
+      allocated: {
+        patterns: Math.floor(adaptiveBudget * 0.3),
+        incidents: Math.floor(adaptiveBudget * 0.6),
+        metadata: Math.floor(adaptiveBudget * 0.1),
+      },
+      perItem: {
+        pattern: 120,
+        incident: multiplier >= 4 ? 400 : 200, // Full tier for large context models
+        summary: 100,
+      },
+    },
+    defaultTier: multiplier >= 4 ? 'full' : (multiplier >= 2 ? 'compact' : 'compact'),
+    ...overrides,
+  });
+}
+
+/**
  * Display token configuration
  */
 export function displayTokenConfig(config?: TokenConfig): void {

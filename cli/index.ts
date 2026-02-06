@@ -237,6 +237,80 @@ program
     }
   });
 
+// Check-file command (PreToolUse hook)
+program
+  .command('check-file [filepath]')
+  .description('Check if a file has been involved in past incidents (used by PreToolUse hook)')
+  .action(async (filepath?: string) => {
+    if (!filepath) {
+      // No file path provided (hook may not have file context)
+      process.exit(0);
+    }
+    try {
+      const { loadAllIncidents } = await import('../src/storage');
+      const incidents = await loadAllIncidents();
+
+      // Check if this file appears in any past incidents
+      const relatedIncidents = incidents.filter(inc =>
+        (inc.files_changed ?? []).some(f => filepath.includes(f) || f.includes(filepath)) ||
+        inc.root_cause?.file === filepath
+      );
+
+      if (relatedIncidents.length > 0) {
+        console.log(`\n⚠️  DEBUGGING MEMORY WARNING: ${filepath}`);
+        console.log(`   This file has been involved in ${relatedIncidents.length} past incident(s):\n`);
+        for (const inc of relatedIncidents.slice(0, 3)) {
+          const symptomPreview = (inc.symptom || '').substring(0, 60);
+          console.log(`   - ${symptomPreview}... (${inc.root_cause?.category || 'unknown'})`);
+        }
+        console.log('');
+      }
+    } catch {
+      // Silently ignore errors in hook - must not block editing
+    }
+  });
+
+// Capture-error command (PostToolUse hook)
+program
+  .command('capture-error')
+  .description('Capture error output from tool execution (used by PostToolUse hook)')
+  .action(async () => {
+    try {
+      // Read last tool output from stdin if available
+      const { getConfig } = await import('../src/config');
+      const { getMemoryPaths } = await import('../src/config');
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      const config = getConfig();
+      const paths = getMemoryPaths(config);
+      const errorsDir = path.join(paths.root, 'captured-errors');
+      await fs.mkdir(errorsDir, { recursive: true });
+
+      // Check if there's stdin data (piped error output)
+      const stdin = process.stdin;
+      if (!stdin.isTTY) {
+        let data = '';
+        stdin.setEncoding('utf-8');
+        for await (const chunk of stdin) {
+          data += chunk;
+          if (data.length > 5000) break; // Cap capture size
+        }
+
+        if (data && (data.includes('Error') || data.includes('error') || data.includes('FAIL') || data.includes('Exception'))) {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          await fs.writeFile(
+            path.join(errorsDir, `err_${timestamp}.txt`),
+            data.substring(0, 5000),
+            'utf-8'
+          );
+        }
+      }
+    } catch {
+      // Silently ignore - must not interfere with session
+    }
+  });
+
 // Feedback command
 program
   .command('feedback')

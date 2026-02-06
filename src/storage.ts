@@ -348,19 +348,38 @@ export function generateIncidentSummary(incident: Incident): IncidentSummary {
  *
  * Uses short keys to minimize token usage in LLM context.
  * Preserves essential information for debugging assistance.
+ *
+ * Observation masking (v1.5.0):
+ * Per JetBrains NeurIPS 2025 research, we preserve the full reasoning chain
+ * (symptom, root cause description, fix approach) and mask large observation
+ * payloads (code_snippet, stack traces). The incident_id is always preserved
+ * so full details can be lazy-loaded via getIncidentDetails().
  */
 export function toCompactIncident(incident: Incident): CompactIncident {
+  // Observation masking: preserve reasoning chain in full, mask large payloads
+  // Symptom: full text (the primary search key, don't truncate)
+  const symptomText = incident.symptom || '';
+  // Root cause description: full reasoning (this is the "why", critical to preserve)
+  const rcDesc = incident.root_cause?.description || '';
+  // Fix approach: full reasoning (this is the "how", critical to preserve)
+  const fixApproach = incident.fix?.approach || '';
+
+  // Only truncate if we're well over budget; prefer keeping reasoning intact
+  const maxSym = symptomText.length > 200 ? 200 : symptomText.length;
+  const maxRc = rcDesc.length > 200 ? 200 : rcDesc.length;
+  const maxFix = fixApproach.length > 150 ? 150 : fixApproach.length;
+
   return {
     id: incident.incident_id,
     ts: incident.timestamp,
-    sym: truncate(incident.symptom, 80),
+    sym: truncate(symptomText, maxSym),
     rc: {
-      d: truncate(incident.root_cause?.description, 100),
+      d: truncate(rcDesc, maxRc),
       cat: incident.root_cause?.category || 'unknown',
       conf: incident.root_cause?.confidence || 0,
     },
     fix: {
-      a: truncate(incident.fix?.approach, 80),
+      a: truncate(fixApproach, maxFix),
       n: incident.fix?.changes?.length || 0,
     },
     v: incident.verification?.status === 'verified'
@@ -371,6 +390,8 @@ export function toCompactIncident(incident: Incident): CompactIncident {
     t: (incident.tags || []).slice(0, 5),
     q: incident.completeness?.quality_score || 0,
     sim: incident.similarity_score,
+    // Masked fields (not included): code_snippet, stack traces, full changes
+    // These can be recovered via getIncidentDetails(id)
   };
 }
 

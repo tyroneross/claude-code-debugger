@@ -161,9 +161,12 @@ async function searchIncidents(
     ).length;
     const tagSimilarity = tagMatches / Math.max(symptomWords.length, 1);
 
-    // Temporal boost (prefer recent)
-    const age = now - incident.timestamp;
-    const temporalBoost = age < temporalCutoff ? 1.2 : 1.0;
+    // Temporal boost with exponential decay (v1.5.0)
+    // Recent incidents get up to 1.5x boost, decaying to 0.85x for very old ones
+    // Half-life: temporal_preference days (default 90)
+    const ageInDays = (now - incident.timestamp) / (24 * 60 * 60 * 1000);
+    const halfLife = config.temporal_preference || 90;
+    const temporalBoost = 0.85 + 0.65 * Math.exp(-0.693 * ageInDays / halfLife);
 
     // Weight: 60% symptom keywords, 40% tags (tags are more semantic)
     const score = (symptomSimilarity * 0.6 + tagSimilarity * 0.4) * temporalBoost;
@@ -183,6 +186,14 @@ async function searchIncidents(
 
 /**
  * Calculate keyword-based similarity
+ *
+ * Uses overlap coefficient instead of Jaccard to avoid penalizing
+ * synonym expansion. Overlap coefficient = |A∩B| / min(|A|, |B|)
+ * This measures how much of the smaller set is covered by the larger,
+ * which is appropriate when one set (the query or the incident) may
+ * have been expanded with synonyms.
+ *
+ * Falls back to Jaccard-like scoring for very small intersection.
  */
 function calculateKeywordSimilarity(words1: string[], words2: string[]): number {
   if (words1.length === 0 || words2.length === 0) return 0;
@@ -191,28 +202,108 @@ function calculateKeywordSimilarity(words1: string[], words2: string[]): number 
   const set2 = new Set(words2);
 
   const intersection = new Set([...set1].filter(x => set2.has(x)));
-  const union = new Set([...set1, ...set2]);
 
-  return intersection.size / union.size; // Jaccard similarity
+  if (intersection.size === 0) return 0;
+
+  // Overlap coefficient: good for synonym-expanded sets
+  const overlapCoeff = intersection.size / Math.min(set1.size, set2.size);
+
+  // Also compute normalized intersection to avoid over-scoring trivial matches
+  const normalizedIntersection = intersection.size / Math.sqrt(set1.size * set2.size);
+
+  // Blend: 70% overlap coefficient, 30% geometric normalized intersection
+  return overlapCoeff * 0.7 + normalizedIntersection * 0.3;
+}
+
+/**
+ * Synonym map for common debugging/engineering terms.
+ * Maps alternative vocabulary to canonical terms used in incident descriptions.
+ * This bridges the lexical gap when users describe symptoms differently.
+ */
+const SYNONYM_MAP: Record<string, string[]> = {
+  'crash': ['die', 'dies', 'dying', 'kill', 'killed', 'terminate', 'terminated', 'abort', 'aborted'],
+  'slow': ['latency', 'sluggish', 'delay', 'delayed', 'lag', 'lagging', 'bottleneck'],
+  'memory': ['ram', 'heap', 'allocation'],
+  'leak': ['accumulate', 'accumulating', 'grows', 'growing', 'bloat', 'bloating'],
+  'loop': ['cycle', 'cycling', 'recursive', 'recursion', 'repeat', 'repeating', 'endless', 'endlessly'],
+  'render': ['refresh', 'refreshing', 'repaint', 'repainting', 'redraw', 'update', 'updating'],
+  'infinite': ['endless', 'endlessly', 'never-ending', 'perpetual', 'continuous', 'continuously'],
+  'error': ['exception', 'fault', 'failure', 'failed', 'failing', 'broken', 'break', 'breaks'],
+  'timeout': ['timed-out', 'unresponsive', 'hanging', 'hang', 'hangs', 'stuck', 'freeze', 'frozen'],
+  'connection': ['connect', 'connected', 'connecting', 'conn', 'socket', 'pool'],
+  'database': ['db', 'sql', 'postgres', 'postgresql', 'mysql', 'mongo', 'mongodb', 'prisma'],
+  'validation': ['validate', 'sanitize', 'sanitization', 'input', 'format', 'formatting'],
+  'hydration': ['ssr', 'server-render', 'server-rendered', 'mismatch'],
+  'component': ['widget', 'element', 'module'],
+  'deploy': ['deployment', 'release', 'publish', 'published', 'ship', 'shipped'],
+  'auth': ['authentication', 'authorization', 'login', 'signin', 'permission', 'permissions'],
+  'cache': ['caching', 'cached', 'memoize', 'memoization', 'stale'],
+};
+
+/**
+ * Build a reverse synonym lookup for quick access
+ */
+const REVERSE_SYNONYMS: Map<string, string> = new Map();
+for (const [canonical, synonyms] of Object.entries(SYNONYM_MAP)) {
+  for (const syn of synonyms) {
+    REVERSE_SYNONYMS.set(syn, canonical);
+  }
 }
 
 /**
  * Extract keywords from text
+ *
+ * Improved (v1.5.0):
+ * - Expanded stop word list
+ * - Adds canonical synonyms alongside original words
+ * - Generates bigrams for compound concepts (e.g., "memory leak", "infinite loop")
  */
 function extractKeywords(text: string): string[] {
-  // Remove common words (simple stop words)
   const stopWords = new Set([
     'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
     'of', 'with', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
     'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should',
-    'can', 'could', 'may', 'might', 'must', 'this', 'that', 'these', 'those'
+    'can', 'could', 'may', 'might', 'must', 'this', 'that', 'these', 'those',
+    'not', 'no', 'nor', 'just', 'also', 'very', 'too', 'only', 'own',
+    'same', 'than', 'then', 'when', 'where', 'why', 'how', 'all', 'each',
+    'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such',
+    'what', 'which', 'who', 'whom', 'its', 'from', 'into', 'over',
+    'after', 'before', 'between', 'out', 'about', 'because', 'while',
+    'during', 'until', 'again', 'further', 'once', 'here', 'there',
+    'itself', 'myself', 'yourself', 'himself', 'herself', 'ourselves',
+    'keeps', 'keep', 'get', 'gets', 'getting', 'got', 'goes', 'going',
   ]);
 
-  return text
+  const words = text
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .replace(/[^\w\s-]/g, ' ')
     .split(/\s+/)
     .filter(word => word.length > 2 && !stopWords.has(word));
+
+  // Add canonical synonyms for each word
+  const expanded: string[] = [...words];
+  for (const word of words) {
+    const canonical = REVERSE_SYNONYMS.get(word);
+    if (canonical && !expanded.includes(canonical)) {
+      expanded.push(canonical);
+    }
+    // Also check if this word IS a canonical term and add its synonyms
+    const synonyms = SYNONYM_MAP[word];
+    if (synonyms) {
+      for (const syn of synonyms) {
+        if (!expanded.includes(syn)) {
+          expanded.push(syn);
+        }
+      }
+    }
+  }
+
+  // Generate bigrams for compound concept matching
+  for (let i = 0; i < words.length - 1; i++) {
+    expanded.push(`${words[i]}-${words[i + 1]}`);
+  }
+
+  return expanded;
 }
 
 /**
@@ -443,10 +534,16 @@ export async function checkMemoryTiered(
     return transformToCompactTier(rawResult, token_budget);
   }
 
-  // 'full' tier - return as-is with full data
+  // 'full' tier - return as-is with full data, properly estimating tokens
+  // Estimate actual token usage (550 per incident, 250 per pattern as documented)
+  const fullTokens = rawResult.incidents.length * 550 +
+    rawResult.patterns.length * 250 +
+    50; // metadata overhead
   return {
+    incidents: rawResult.incidents.map(toCompactIncident), // Still return data
+    patterns: rawResult.patterns.map(toCompactPattern),
     confidence: rawResult.confidence,
-    tokens_used: rawResult.tokens_used,
+    tokens_used: Math.max(rawResult.tokens_used, fullTokens),
     has_more_details: false,
   };
 }

@@ -130,5 +130,21 @@ export {
   createQuickSummary
 } from './result-aggregator';
 
+// Entity Index (v1.5.0)
+export {
+  buildEntityIndex,
+  loadEntityIndex,
+  queryByFile,
+  queryByCategory,
+  getHotspotFiles,
+} from './entity-index';
+export type { EntityEntry, EntityIndex } from './entity-index';
+
+// Adaptive Config (v1.5.0)
+export {
+  detectContextMultiplier,
+  getAdaptiveTokenConfig,
+} from './config';
+
 // Trace Ingestion (v1.4.0)
 export * from './traces';
