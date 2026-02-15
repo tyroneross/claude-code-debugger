@@ -46,6 +46,7 @@ export {
   buildMemorySummary,
   archiveOldIncidents,
   compressContext,
+  enforceTokenBudget,
 } from './storage';
 
 // Interactive Verification

@@ -17,6 +17,7 @@ import {
   batchExtractPatterns,
   batchCleanup
 } from '../src/batch-operations';
+import { runInit } from './init';
 
 const program = new Command();
 
@@ -549,6 +550,19 @@ program
       } else {
         console.error('❌ Update failed:', error.message);
       }
+      process.exit(1);
+    }
+  });
+
+// Init / onboarding command
+program
+  .command('init')
+  .description('Interactive setup wizard for debugging memory')
+  .action(async () => {
+    try {
+      await runInit();
+    } catch (error: any) {
+      console.error('Setup failed:', error.message);
       process.exit(1);
     }
   });

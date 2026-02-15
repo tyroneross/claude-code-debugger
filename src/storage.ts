@@ -579,6 +579,7 @@ export async function searchIncidentLog(
       .filter((entry): entry is IncidentLogEntry => {
         if (!entry) return false;
         return (
+          entry.incident_id.toLowerCase().includes(queryLower) ||
           entry.symptom.toLowerCase().includes(queryLower) ||
           entry.category.toLowerCase().includes(queryLower) ||
           entry.tags.some(t => t.toLowerCase().includes(queryLower))
