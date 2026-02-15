@@ -532,3 +532,62 @@ export interface ArchiveManifest {
   newest_timestamp: number;
   reason: string;
 }
+
+// ============================================================================
+// PROGRESSIVE DEPTH - Summary-first retrieval with drill-down
+// ============================================================================
+
+/**
+ * A single match in progressive retrieval — one-liner with drill-down reference
+ */
+export interface ProgressiveMatch {
+  id: string;                         // incident or pattern ID
+  type: 'incident' | 'pattern';
+  one_liner: string;                  // e.g. "React hook dep array → stale closure (85% conf)"
+  verdict: SearchVerdict;
+  confidence: number;
+  detail_command: string;             // e.g. "/debugger-detail INC_xxx"
+}
+
+/**
+ * Progressive retrieval result — compact matches with drill-down
+ */
+export interface ProgressiveResult {
+  verdict: SearchVerdict;
+  summary: string;
+  matches: ProgressiveMatch[];
+  total_matches: number;
+  tokens_used: number;
+  action: string;
+}
+
+// ============================================================================
+// KEYWORD INDEX - Inverted index for scalable retrieval
+// ============================================================================
+
+/**
+ * Inverted keyword index for O(1) candidate lookup
+ */
+export interface KeywordIndex {
+  version: number;
+  last_updated: number;
+  keywords: Record<string, string[]>;  // keyword → incident_id[]
+  total_incidents: number;
+  total_keywords: number;
+}
+
+// ============================================================================
+// OUTCOME TRACKING - Did the suggested fix actually work?
+// ============================================================================
+
+/**
+ * Records whether a verdict/fix suggestion actually resolved the issue
+ */
+export interface VerdictOutcome {
+  incident_id: string;
+  session_id?: string;
+  verdict_given: SearchVerdict;
+  outcome: 'worked' | 'failed' | 'modified';
+  recorded_at: number;
+  notes?: string;
+}

@@ -8,7 +8,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig, MemoryIndex, IncidentLogEntry } from './types';
+import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig, MemoryIndex, IncidentLogEntry, KeywordIndex, VerdictOutcome } from './types';
 import { getMemoryPaths } from './config';
 import { buildIncidentInteractive, calculateQualityScore } from './interactive-verifier';
 
@@ -78,8 +78,11 @@ export async function storeIncident(
   // Append to JSONL log for fast full-text search
   await appendToIncidentLog(finalIncident, options.config);
 
-  // Rebuild index for O(1) lookups
-  await rebuildIndex(options.config);
+  // Incremental index update (avoids loading all incidents)
+  await updateIndexIncremental(finalIncident, options.config);
+
+  // Update keyword index
+  await updateKeywordIndex(finalIncident, options.config);
 
   return {
     incident_id: finalIncident.incident_id,
@@ -911,4 +914,287 @@ export function compressContext(
   }
 
   return sections.join('\n');
+}
+
+// ============================================================================
+// KEYWORD INDEX - Inverted index for scalable retrieval
+// ============================================================================
+
+/**
+ * Extract keywords from an incident for indexing
+ */
+function extractIndexKeywords(incident: Incident): string[] {
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should',
+    'can', 'could', 'may', 'might', 'must', 'this', 'that', 'these', 'those',
+    'not', 'from', 'it', 'its', 'when', 'where', 'what', 'which', 'how',
+  ]);
+
+  const text = [
+    incident.symptom || '',
+    incident.root_cause?.description || '',
+    incident.root_cause?.category || '',
+    incident.fix?.approach || '',
+    ...(incident.tags || []),
+  ].join(' ');
+
+  return [...new Set(
+    text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w))
+  )];
+}
+
+/**
+ * Update keyword index with a new incident (incremental, no full rebuild)
+ */
+export async function updateKeywordIndex(
+  incident: Incident,
+  config?: MemoryConfig
+): Promise<void> {
+  const index = await loadKeywordIndex(config) || {
+    version: 1,
+    last_updated: Date.now(),
+    keywords: {},
+    total_incidents: 0,
+    total_keywords: 0,
+  };
+
+  const keywords = extractIndexKeywords(incident);
+  const id = incident.incident_id;
+
+  for (const kw of keywords) {
+    if (!index.keywords[kw]) index.keywords[kw] = [];
+    if (!index.keywords[kw].includes(id)) {
+      index.keywords[kw].push(id);
+    }
+  }
+
+  index.last_updated = Date.now();
+  index.total_incidents++;
+  index.total_keywords = Object.keys(index.keywords).length;
+
+  const paths = getMemoryPaths(config);
+  const indexPath = path.join(paths.root, 'keyword-index.json');
+  await fs.mkdir(paths.root, { recursive: true });
+  await fs.writeFile(indexPath, JSON.stringify(index), 'utf-8');
+}
+
+/**
+ * Load keyword index from disk
+ */
+export async function loadKeywordIndex(config?: MemoryConfig): Promise<KeywordIndex | null> {
+  const paths = getMemoryPaths(config);
+  const indexPath = path.join(paths.root, 'keyword-index.json');
+
+  try {
+    const content = await fs.readFile(indexPath, 'utf-8');
+    return JSON.parse(content) as KeywordIndex;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find candidate incident IDs by keyword intersection
+ */
+export function findCandidatesByKeyword(
+  queryWords: string[],
+  index: KeywordIndex,
+  maxCandidates: number = 20
+): string[] {
+  const candidateScores = new Map<string, number>();
+
+  for (const word of queryWords) {
+    const ids = index.keywords[word] || [];
+    for (const id of ids) {
+      candidateScores.set(id, (candidateScores.get(id) || 0) + 1);
+    }
+  }
+
+  // Sort by number of keyword hits (descending)
+  return [...candidateScores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxCandidates)
+    .map(([id]) => id);
+}
+
+/**
+ * Rebuild keyword index from scratch
+ */
+export async function rebuildKeywordIndex(config?: MemoryConfig): Promise<KeywordIndex> {
+  const incidents = await loadAllIncidents(config);
+
+  const index: KeywordIndex = {
+    version: 1,
+    last_updated: Date.now(),
+    keywords: {},
+    total_incidents: incidents.length,
+    total_keywords: 0,
+  };
+
+  for (const incident of incidents) {
+    const keywords = extractIndexKeywords(incident);
+    const id = incident.incident_id;
+
+    for (const kw of keywords) {
+      if (!index.keywords[kw]) index.keywords[kw] = [];
+      if (!index.keywords[kw].includes(id)) {
+        index.keywords[kw].push(id);
+      }
+    }
+  }
+
+  index.total_keywords = Object.keys(index.keywords).length;
+
+  const paths = getMemoryPaths(config);
+  const indexPath = path.join(paths.root, 'keyword-index.json');
+  await fs.mkdir(paths.root, { recursive: true });
+  await fs.writeFile(indexPath, JSON.stringify(index), 'utf-8');
+
+  return index;
+}
+
+// ============================================================================
+// INCREMENTAL INDEX UPDATE - Avoid full rebuilds on every store
+// ============================================================================
+
+/**
+ * Update index incrementally with a new incident (avoids full loadAllIncidents)
+ */
+export async function updateIndexIncremental(
+  incident: Incident,
+  config?: MemoryConfig
+): Promise<void> {
+  const paths = getMemoryPaths(config);
+  const indexPath = path.join(paths.root, 'index.json');
+
+  let index: MemoryIndex;
+  try {
+    const content = await fs.readFile(indexPath, 'utf-8');
+    index = JSON.parse(content) as MemoryIndex;
+  } catch {
+    // No index yet — do a full rebuild
+    await rebuildIndex(config);
+    return;
+  }
+
+  const id = incident.incident_id;
+  const cat = incident.root_cause?.category || 'unknown';
+  const qs = incident.completeness?.quality_score || 0;
+
+  // Stats
+  index.stats.total_incidents++;
+  index.stats.categories[cat] = (index.stats.categories[cat] || 0) + 1;
+  for (const tag of (incident.tags || [])) {
+    index.stats.tags[tag] = (index.stats.tags[tag] || 0) + 1;
+  }
+
+  if (incident.timestamp < index.stats.oldest_timestamp || index.stats.oldest_timestamp === 0) {
+    index.stats.oldest_timestamp = incident.timestamp;
+  }
+  if (incident.timestamp > index.stats.newest_timestamp) {
+    index.stats.newest_timestamp = incident.timestamp;
+  }
+
+  // Category index
+  if (!index.by_category[cat]) index.by_category[cat] = [];
+  index.by_category[cat].push(id);
+
+  // Tag index
+  for (const tag of (incident.tags || [])) {
+    if (!index.by_tag[tag]) index.by_tag[tag] = [];
+    index.by_tag[tag].push(id);
+  }
+
+  // File index
+  for (const file of (incident.files_changed || [])) {
+    if (!index.by_file[file]) index.by_file[file] = [];
+    index.by_file[file].push(id);
+  }
+
+  // Quality
+  if (qs >= 0.75) {
+    index.by_quality.excellent.push(id);
+    index.stats.quality_distribution.excellent++;
+  } else if (qs >= 0.5) {
+    index.by_quality.good.push(id);
+    index.stats.quality_distribution.good++;
+  } else {
+    index.by_quality.fair.push(id);
+    index.stats.quality_distribution.fair++;
+  }
+
+  // Recent
+  index.recent.unshift(id);
+  if (index.recent.length > 20) index.recent = index.recent.slice(0, 20);
+
+  index.last_updated = Date.now();
+
+  await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
+}
+
+// ============================================================================
+// OUTCOME TRACKING - Did the suggested fix actually work?
+// ============================================================================
+
+/**
+ * Record whether a verdict suggestion actually worked
+ */
+export async function recordOutcome(
+  outcome: VerdictOutcome,
+  config?: MemoryConfig
+): Promise<void> {
+  const paths = getMemoryPaths(config);
+  const outcomesPath = path.join(paths.root, 'outcomes.jsonl');
+
+  try {
+    await fs.appendFile(outcomesPath, JSON.stringify(outcome) + '\n', 'utf-8');
+  } catch {
+    await fs.mkdir(paths.root, { recursive: true });
+    await fs.writeFile(outcomesPath, JSON.stringify(outcome) + '\n', 'utf-8');
+  }
+}
+
+/**
+ * Load all recorded outcomes
+ */
+export async function loadOutcomes(config?: MemoryConfig): Promise<VerdictOutcome[]> {
+  const paths = getMemoryPaths(config);
+  const outcomesPath = path.join(paths.root, 'outcomes.jsonl');
+
+  try {
+    const content = await fs.readFile(outcomesPath, 'utf-8');
+    return content
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        try { return JSON.parse(line) as VerdictOutcome; }
+        catch { return null; }
+      })
+      .filter((o): o is VerdictOutcome => o !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get outcome statistics for a specific incident
+ */
+export async function getOutcomeStats(
+  incident_id: string,
+  config?: MemoryConfig
+): Promise<{ worked: number; failed: number; modified: number }> {
+  const outcomes = await loadOutcomes(config);
+  const relevant = outcomes.filter(o => o.incident_id === incident_id);
+
+  return {
+    worked: relevant.filter(o => o.outcome === 'worked').length,
+    failed: relevant.filter(o => o.outcome === 'failed').length,
+    modified: relevant.filter(o => o.outcome === 'modified').length,
+  };
 }

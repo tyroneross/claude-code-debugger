@@ -47,6 +47,19 @@ export {
   archiveOldIncidents,
   compressContext,
   enforceTokenBudget,
+  toCompactIncident,
+  toCompactPattern,
+  toCompactIncidents,
+  toCompactPatterns,
+  // v1.6.0 additions
+  updateKeywordIndex,
+  loadKeywordIndex,
+  findCandidatesByKeyword,
+  rebuildKeywordIndex,
+  updateIndexIncremental,
+  recordOutcome,
+  loadOutcomes,
+  getOutcomeStats,
 } from './storage';
 
 // Interactive Verification
@@ -88,6 +101,9 @@ export {
   // v1.5.0 verdict system
   checkMemoryWithVerdict,
   classifyVerdict,
+  // v1.6.0 progressive + scaled
+  checkMemoryProgressive,
+  checkMemoryScaled,
 } from './retrieval';
 
 export type {
@@ -103,6 +119,11 @@ export type {
   MemoryIndex,
   IncidentLogEntry,
   ArchiveManifest,
+  // v1.6.0 types
+  ProgressiveResult,
+  ProgressiveMatch,
+  KeywordIndex,
+  VerdictOutcome,
 } from './types';
 
 // Parallel Retrieval
@@ -147,6 +168,13 @@ export {
   formatAggregatedResults,
   createQuickSummary
 } from './result-aggregator';
+
+// Context Engine (v1.6.0)
+export {
+  generateDynamicSection,
+  generateSessionContext,
+  checkFileContext,
+} from './context-engine';
 
 // Trace Ingestion (v1.4.0)
 export * from './traces';

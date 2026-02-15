@@ -6,34 +6,30 @@ A debugging memory system for Claude Code that automatically learns from past in
 
 ## Features
 
-### Core Features
-- **Incident Tracking**: Store complete debugging incidents with symptoms, root causes, fixes, and verification
-- **Interactive Verification**: Guided prompts to ensure high-quality incident documentation
-- **Quality Scoring**: Automatic calculation of incident completeness (0-100%)
-- **Auto-Pattern Extraction**: Automatically extracts patterns after storing 3+ similar incidents
-- **Enhanced Search**: Multi-strategy search (exact → tag → fuzzy → semantic)
-- **Batch Operations**: Review incomplete incidents, extract patterns, cleanup old data
-- **Smart Retrieval**: Find similar incidents using keyword-based similarity matching
-- **Audit Trail Mining**: Recover incidents from `.claude/audit` files when manual storage is missed
+### Core
+- **Incident Tracking** — Store debugging incidents with symptoms, root causes, fixes, and verification
+- **Verdict System** — Results classified as KNOWN_FIX, LIKELY_MATCH, WEAK_SIGNAL, or NO_MATCH
+- **Progressive Depth** — One-liner results (~40 tokens each), drill into full details on demand
+- **Keyword Indexing** — Inverted index for O(log n) retrieval instead of scanning every file
+- **Context Engine** — Auto-injects memory stats into sessions, file-aware editing hints
+- **Outcome Tracking** — Records whether suggested fixes actually worked
+- **Quality Scoring** — Automatic completeness scoring (0-100%)
+- **Pattern Extraction** — Auto-extracts reusable patterns after 3+ similar incidents
+- **Enhanced Search** — Multi-strategy: exact, tag, fuzzy (Jaro-Winkler), category
+- **Audit Trail Mining** — Recovers incidents from `.claude/audit` files
+- **Benchmark Suite** — 6-dimension scoring system to measure system quality
 
-### v1.4.0 Features
-- **Parallel Assessment** ✨ NEW: Multi-domain analysis with concurrent assessor agents
-  - Domain-specific assessors (database, frontend, API, performance)
-  - Automatic domain detection from symptom keywords
-  - Confidence-based result ranking
-- **Trace Ingestion** ✨ NEW: Ingest traces from external observability tools
-  - OpenTelemetry, Sentry, LangChain, Browser adapters
-  - Token-efficient trace summarization
-  - Cross-reference with debugging memory
-- **Parallel Retrieval** ✨ NEW: Concurrent memory search for faster results
-- **Plugin Marketplace**: Install directly via Claude Code plugin marketplace
+### Integrations
+- **Parallel Assessment** — Multi-domain analysis (database, frontend, API, performance)
+- **Trace Ingestion** — OpenTelemetry, Sentry, LangChain, Browser adapters
+- **Parallel Retrieval** — Concurrent memory search for faster results
+- **Plugin Marketplace** — Install directly via Claude Code plugin system
 
-### Storage & Integration
-- **Dual Storage Modes**:
-  - **Local mode**: Each project has its own `.claude/memory/`
-  - **Shared mode**: All projects share `~/.claude-code-debugger/` for cross-project learning
-- **CLI Access**: Command-line interface for quick memory operations
-- **Programmatic API**: Import and use in your TypeScript/JavaScript code
+### Storage
+- **Dual Modes** — Local (`.claude/memory/` per project) or Shared (`~/.claude-code-debugger/` global)
+- **Tiered Storage** — Index (O(1) lookup), JSONL (fast search), individual files (on-demand)
+- **Auto-archival** — Old incidents archived after 200 active or 180 days
+- **Context Compression** — Token-optimized output for LLM injection
 
 ## Installation
 
@@ -95,6 +91,7 @@ After installation, these slash commands are automatically available in Claude C
 |---------|-------------|
 | `/debugger "symptom"` | Search past bugs for similar issues before debugging |
 | `/debugger` | Show recent bugs and pick one to debug |
+| `/debugger-detail <ID>` | Drill into a specific incident or pattern |
 | `/debugger-status` | Show memory statistics |
 | `/debugger-scan` | Scan recent sessions for debugging incidents |
 | `/assess "symptom"` | Run parallel domain assessment (database, frontend, API, performance) |
@@ -102,75 +99,18 @@ After installation, these slash commands are automatically available in Claude C
 **Examples:**
 ```
 /debugger "API returns 500 on login"
-→ Searches memory, shows similar past incidents and how you fixed them
+→ One-liner matches with verdicts (KNOWN_FIX, LIKELY_MATCH, etc.)
+→ Use /debugger-detail <ID> to drill into any match
 
-/debugger
-→ Shows recent bugs from memory, asks which one you're working on
+/debugger-detail INC_API_20260215_143022_a1b2
+→ Full incident details: root cause, fix, verification, files changed
 
 /debugger-status
-→ "4 incidents stored, 0 patterns, 4 KB used"
+→ "5 incidents stored, 2 patterns, 12 KB used"
 
 /debugger-scan
 → Scans recent sessions for debugging incidents
-
-/assess "search is slow and returns wrong results"
-→ Runs parallel assessment across database, frontend, API, performance domains
-→ Returns prioritized list of potential causes with confidence scores
 ```
-
-### Parallel Assessment (v1.4.0)
-
-For complex issues that span multiple domains, use parallel assessment:
-
-```bash
-/assess "search is slow and returns wrong results"
-```
-
-This spawns multiple assessor agents in parallel:
-- **Database Assessor**: Checks for query issues, missing indexes, schema problems
-- **Frontend Assessor**: Analyzes React/component issues, state management
-- **API Assessor**: Reviews endpoint logic, middleware, authentication
-- **Performance Assessor**: Identifies bottlenecks, memory leaks, optimization opportunities
-
-Results are aggregated and ranked by confidence score, giving you a prioritized action list.
-
-### Trace Ingestion (v1.4.0)
-
-Import traces from external observability tools to enrich your debugging memory:
-
-```typescript
-import {
-  ingestOpenTelemetryTrace,
-  ingestSentryEvent,
-  ingestLangChainTrace,
-  ingestBrowserTrace,
-  summarizeTrace
-} from '@tyroneross/claude-code-debugger';
-
-// Ingest OpenTelemetry trace
-await ingestOpenTelemetryTrace(otelSpan, {
-  correlateWithMemory: true,
-  summarize: true
-});
-
-// Ingest Sentry error event
-await ingestSentryEvent(sentryEvent, {
-  extractIncident: true,
-  minSeverity: 'error'
-});
-
-// Summarize trace for token efficiency
-const summary = await summarizeTrace(trace, {
-  maxTokens: 500,
-  preserveErrors: true
-});
-```
-
-Supported adapters:
-- **OpenTelemetry**: Distributed tracing spans
-- **Sentry**: Error events and breadcrumbs
-- **LangChain**: LLM call traces
-- **Browser**: Performance timing and resource traces
 
 ### CLI Usage
 
@@ -187,6 +127,12 @@ claude-code-debugger debug "Search filters not working"
 # Search for specific incidents
 claude-code-debugger search "react hooks"
 
+# Drill into a specific incident or pattern
+claude-code-debugger detail INC_REACT_20260215_001
+
+# Record whether a suggested fix worked
+claude-code-debugger outcome INC_REACT_20260215_001 worked
+
 # Suggest patterns to extract
 claude-code-debugger patterns
 
@@ -199,117 +145,72 @@ claude-code-debugger mine --days 30
 # Store mined incidents
 claude-code-debugger mine --days 30 --store
 
-# Batch operations (v1.2.0) ✨ NEW
+# Rebuild keyword index (after manual edits)
+claude-code-debugger rebuild-index
+
+# Batch operations
 claude-code-debugger batch --incomplete              # Review incomplete incidents
 claude-code-debugger batch --extract-patterns        # Extract patterns from existing data
 claude-code-debugger batch --cleanup --older-than 90 # Clean up old sessions
+
+# Remove debugger from this project
+claude-code-debugger uninstall
+claude-code-debugger uninstall --remove-data  # Also delete memory data
 ```
 
 ### Programmatic Usage
 
 ```typescript
 import {
-  debugWithMemory,
-  storeDebugIncident,
+  // Retrieval (v1.6 — recommended)
+  checkMemoryProgressive,
+  checkMemoryScaled,
+  checkMemoryWithVerdict,
+  // Retrieval (classic)
   checkMemory,
+  debugWithMemory,
+  // Storage
+  storeDebugIncident,
+  storeIncident,
+  // Context engine
+  generateSessionContext,
+  checkFileContext,
+  // Outcome tracking
+  recordOutcome,
+  // Indexing
+  rebuildKeywordIndex,
+  // Pattern & mining
   extractPatterns,
   mineAuditTrail
 } from '@tyroneross/claude-code-debugger';
 
-// Before debugging: Check for similar incidents
-const result = await debugWithMemory("Search filters not working", {
-  min_confidence: 0.7
-});
+// Progressive search — one-liner results, drill into details on demand
+const progressive = await checkMemoryProgressive("API returns 500 on login");
+// progressive.verdict: "KNOWN_FIX" | "LIKELY_MATCH" | "WEAK_SIGNAL" | "NO_MATCH"
+// progressive.matches: [{ id, one_liner, verdict, detail_command }]
+// progressive.tokens_used: ~200 (vs ~2000 for full results)
 
-console.log('Session ID:', result.context_used.session_id);
+// Scaled search — uses keyword index for large memory stores
+const scaled = await checkMemoryScaled("infinite render loop");
 
-// After fixing: Store the incident
-await storeDebugIncident(sessionId, {
-  root_cause: {
-    description: "Missing useMemo dependency caused infinite re-renders",
-    category: "react-hooks",
-    confidence: 0.9
-  },
-  fix: {
-    approach: "Added missing dependency to useMemo array",
-    changes: ["components/SearchBar.tsx"],
-    time_to_fix: 15
-  },
-  verification: {
-    status: 'verified',
-    regression_tests_passed: true,
-    user_journey_tested: true,
-    success_criteria_met: true
-  }
-});
+// Verdict-based search (v1.5)
+const verdict = await checkMemoryWithVerdict("search filters broken");
+// verdict.verdict, verdict.context, verdict.action
 
-// Search memory directly
-const memory = await checkMemory("infinite render loop", {
-  similarity_threshold: 0.5,
-  max_results: 5
-});
+// Check if a file has past incidents before editing
+const fileCtx = await checkFileContext("src/api/users.ts");
+if (fileCtx.has_incidents) {
+  console.log('Past incidents:', fileCtx.incident_ids);
+}
 
-// Extract patterns from incidents
-const patterns = await extractPatterns({
-  min_incidents: 3,
-  min_similarity: 0.7,
-  auto_store: true
-});
-
-// Mine audit trail
-const incidents = await mineAuditTrail({
-  days_back: 30,
-  auto_store: true,
-  min_confidence: 0.7
+// Record whether a suggested fix actually worked
+await recordOutcome({
+  incident_id: 'INC_API_20260215_001',
+  verdict_given: 'KNOWN_FIX',
+  outcome: 'worked',  // 'worked' | 'failed' | 'modified'
+  recorded_at: Date.now()
 });
 ```
-
-### Interactive Verification (New in v1.2.0)
-
-Use interactive prompts to ensure high-quality incident documentation:
-
-```typescript
-import { storeIncident, generateIncidentId } from '@tyroneross/claude-code-debugger';
-
-// Create a minimal incident
-const incident = {
-  incident_id: generateIncidentId(),
-  timestamp: Date.now(),
-  symptom: 'Search results not displaying',
-  root_cause: {
-    description: 'React component issue',
-    category: 'react',
-    confidence: 0.7
-  },
-  // ... minimal details
-};
-
-// Store with interactive mode - system will prompt for missing details
-const result = await storeIncident(incident, {
-  interactive: true,  // Enable guided prompts
-  validate_schema: true
-});
-
-// The system will:
-// 1. Check root cause quality (min 50 chars)
-// 2. Ask about verification status
-// 3. Suggest tags based on symptom
-// 4. Calculate quality score
-// 5. Show feedback and confirm storage
-```
-
-**Quality Scoring:**
-- Root Cause Analysis: 30%
-- Fix Details: 30%
-- Verification: 20%
-- Documentation (tags, etc): 20%
-
-**Quality Targets:**
-- 🌟 Excellent: ≥75%
-- ✅ Good: ≥50%
-- ⚠️ Fair: <50%
-
-See [Interactive Verification Guide](./docs/INTERACTIVE_VERIFICATION.md) for details.
 
 ## Configuration
 
@@ -375,11 +276,14 @@ When 3+ similar incidents are detected:
 
 ### 3. Retrieval Strategy
 
-**Pattern-First Approach:**
-1. Try to match against known patterns (90% confidence)
-2. If no pattern matches, search incidents (70% confidence)
-3. Use keyword-based Jaccard similarity
-4. Prefer recent incidents (90-day window)
+**Progressive, Pattern-First Approach:**
+1. Extract keywords from symptom
+2. Keyword index lookup (O(log n) — no full file scan)
+3. Match against known patterns first (90% confidence)
+4. Then search incidents (70% confidence)
+5. Classify verdict: KNOWN_FIX → LIKELY_MATCH → WEAK_SIGNAL → NO_MATCH
+6. Return one-liner summaries (~40 tokens each), drill into details on demand
+7. Falls back to full scan for stores with <10 incidents
 
 ### 4. Audit Trail Mining
 
@@ -468,6 +372,66 @@ claude-code-debugger mine --days 30 --store
 - `--store`: Store mined incidents (vs just preview)
 - `--shared`: Use shared memory mode
 
+### `detail <id>`
+
+Load full details for a specific incident or pattern.
+
+```bash
+claude-code-debugger detail INC_REACT_20260215_001
+claude-code-debugger detail PTN_API_ERROR
+```
+
+### `outcome <incident_id> <result>`
+
+Record whether a suggested fix worked.
+
+```bash
+claude-code-debugger outcome INC_API_20260215_001 worked
+claude-code-debugger outcome INC_API_20260215_001 failed
+claude-code-debugger outcome INC_API_20260215_001 modified
+```
+
+### `session-context`
+
+Output compact JSON context for hooks. Used by the SessionStart hook to inject memory state at the beginning of each Claude session.
+
+```bash
+claude-code-debugger session-context
+```
+
+### `check-file <filepath>`
+
+Check if a file has past incidents. Used by the PreToolUse hook to surface relevant history when editing files.
+
+```bash
+claude-code-debugger check-file src/api/users.ts
+```
+
+### `rebuild-index`
+
+Rebuild the keyword index from all incidents. Run after manual edits to incident files.
+
+```bash
+claude-code-debugger rebuild-index
+```
+
+### `uninstall`
+
+Remove debugger integration from the current project.
+
+```bash
+# Interactive — confirms before removing
+claude-code-debugger uninstall
+
+# Skip confirmation
+claude-code-debugger uninstall -y
+
+# Also delete all memory data (incidents, patterns, sessions)
+claude-code-debugger uninstall --remove-data
+```
+
+Removes: hooks from `.claude/settings.json`, slash commands from `.claude/commands/`, debugging section from `CLAUDE.md`. Memory data is kept by default so you can reinstall later without losing history.
+
 ## API Reference
 
 ### Core Functions
@@ -549,7 +513,15 @@ import {
   storePattern,
   loadPattern,
   loadAllPatterns,
-  getMemoryStats
+  getMemoryStats,
+  // v1.6 additions
+  updateKeywordIndex,
+  loadKeywordIndex,
+  findCandidatesByKeyword,
+  rebuildKeywordIndex,
+  recordOutcome,
+  loadOutcomes,
+  getOutcomeStats
 } from '@tyroneross/claude-code-debugger';
 ```
 
@@ -581,7 +553,13 @@ import type {
   Verification,
   QualityGates,
   RetrievalResult,
-  MemoryConfig
+  MemoryConfig,
+  SearchVerdict,
+  // v1.6 additions
+  ProgressiveResult,
+  ProgressiveMatch,
+  KeywordIndex,
+  VerdictOutcome
 } from '@tyroneross/claude-code-debugger';
 ```
 
@@ -592,17 +570,27 @@ import type {
 your-project/
 └── .claude/
     └── memory/
-        ├── incidents/     # Individual incident JSON files
-        ├── patterns/      # Extracted pattern JSON files
-        └── sessions/      # Temporary debug session files
+        ├── incidents/          # Individual incident JSON files
+        ├── patterns/           # Extracted pattern JSON files
+        ├── sessions/           # Temporary debug session files
+        ├── index.json          # Stats, categories, quality tiers (O(1) lookup)
+        ├── keyword-index.json  # Inverted keyword → incident ID map
+        ├── incidents.jsonl     # Append-only log for fast full-text search
+        ├── outcomes.jsonl      # Verdict outcome tracking (worked/failed/modified)
+        └── MEMORY_SUMMARY.md   # Compressed context for LLM cold starts
 ```
 
 ### Shared Mode
 ```
 ~/.claude-code-debugger/
-├── incidents/    # All incidents from all projects
-├── patterns/     # All patterns from all projects
-└── sessions/     # Temporary session files
+├── incidents/          # All incidents from all projects
+├── patterns/           # All patterns from all projects
+├── sessions/           # Temporary session files
+├── index.json
+├── keyword-index.json
+├── incidents.jsonl
+├── outcomes.jsonl
+└── MEMORY_SUMMARY.md
 ```
 
 ## Integration with Claude Code
@@ -662,6 +650,83 @@ claude-code-debugger mine --days 30 --store
 export CLAUDE_MEMORY_MODE=shared
 ```
 
+## Context Engine
+
+The context engine automatically surfaces relevant debugging memory without manual `/debugger` calls.
+
+### Layer 1: CLAUDE.md Dynamic Section
+
+On install, a dynamic section is injected into your project's `CLAUDE.md` with:
+- Current memory stats (incident count, pattern count, categories)
+- Hot files — which files have the most past incidents
+- Trigger instructions — when Claude should call `/debugger`
+
+This section updates on each `rebuild-index` or session start.
+
+### Layer 2: Session Start Hook
+
+A command-type hook runs `claude-code-debugger session-context` at the start of each Claude session, outputting compact JSON with memory stats and trigger instructions (~150 tokens).
+
+### Layer 3: File-Aware Editing
+
+A PreToolUse hook checks `claude-code-debugger check-file <path>` when files are edited. If the file has past incidents, relevant IDs and a message are surfaced. Otherwise, zero noise — just `{"ok": true}`.
+
+### Outcome Tracking
+
+After a `/debugger` search suggests a fix, you can record whether it actually worked:
+
+```bash
+claude-code-debugger outcome INC_API_20260215_001 worked
+claude-code-debugger outcome INC_API_20260215_001 failed
+claude-code-debugger outcome INC_API_20260215_001 modified
+```
+
+This feeds back into pattern success rates, so the system learns which fixes are reliable over time.
+
+## Uninstall
+
+Remove the debugger from your project cleanly:
+
+```bash
+claude-code-debugger uninstall
+```
+
+This removes:
+- Session hooks from `.claude/settings.json`
+- Slash commands from `.claude/commands/`
+- Debugging Memory section from `CLAUDE.md`
+
+Your memory data (incidents, patterns, sessions) is **kept by default** so you can reinstall later without losing history. To also remove data:
+
+```bash
+claude-code-debugger uninstall --remove-data
+```
+
+To skip the confirmation prompt:
+
+```bash
+claude-code-debugger uninstall -y
+```
+
+## Benchmark
+
+Run the 6-dimension benchmark to measure system quality:
+
+```bash
+npm run benchmark
+```
+
+This creates synthetic incident data and scores the system across:
+
+| Dimension | Weight | What it measures |
+|---|---|---|
+| Retrieval Accuracy | 25 | Precision and recall for known-bug search |
+| Verdict Precision | 20 | Do verdicts match expected classifications? |
+| Context Efficiency | 15 | Compression ratio and budget enforcement |
+| Pattern Quality | 15 | Do patterns match their source incidents? |
+| Scalability | 15 | Performance at various incident counts |
+| Cold Start Quality | 10 | MEMORY_SUMMARY.md usefulness |
+
 ## Development
 
 ### Build from Source
@@ -677,6 +742,12 @@ npm run build
 
 ```bash
 npm test
+```
+
+### Run Benchmark
+
+```bash
+npm run benchmark
 ```
 
 ### Watch Mode

@@ -407,6 +407,8 @@ import type {
   TieredRetrievalResult,
   SearchVerdict,
   VerdictResult,
+  ProgressiveResult,
+  ProgressiveMatch,
 } from './types';
 
 import {
@@ -414,6 +416,9 @@ import {
   toCompactPattern,
   generateIncidentSummary,
   enforceTokenBudget,
+  loadKeywordIndex,
+  findCandidatesByKeyword,
+  loadIncident,
 } from './storage';
 
 /**
@@ -695,5 +700,199 @@ export async function checkMemoryWithVerdict(
     patterns: compactPatterns,
     tokens_used: result.tokens_used,
     action: verdictAction(verdict),
+  };
+}
+
+// ============================================================================
+// PROGRESSIVE DEPTH - One-liner matches with drill-down
+// ============================================================================
+
+/**
+ * Build a one-liner summary for an incident
+ */
+function buildOneLiner(incident: Incident): string {
+  const cat = incident.root_cause?.category || 'unknown';
+  const conf = incident.root_cause?.confidence || 0;
+  const sym = (incident.symptom || '').substring(0, 50);
+  return `${sym} → ${cat} (${(conf * 100).toFixed(0)}% conf)`;
+}
+
+/**
+ * Build a one-liner summary for a pattern
+ */
+function buildPatternOneLiner(pattern: Pattern): string {
+  const sr = (pattern.success_rate * 100).toFixed(0);
+  const desc = pattern.description.substring(0, 50);
+  return `${desc} (${sr}% success, ${pattern.usage_history?.total_uses || 0} uses)`;
+}
+
+/**
+ * Check memory with progressive depth — returns one-liner matches with drill-down commands
+ *
+ * Total output stays under 500 tokens even with 10 matches.
+ * Use /debugger-detail <ID> to get full incident data on demand.
+ */
+export async function checkMemoryProgressive(
+  symptom: string,
+  config: Partial<RetrievalConfig> & { memoryConfig?: MemoryConfig } = {}
+): Promise<ProgressiveResult> {
+  const { memoryConfig, ...retrievalConfig } = config;
+  const fullConfig = { ...DEFAULT_CONFIG, ...retrievalConfig };
+
+  const result = await checkMemory(symptom, { memoryConfig, ...fullConfig });
+  const verdict = classifyVerdict(result);
+
+  const matches: ProgressiveMatch[] = [];
+
+  // Patterns first (highest value)
+  for (const pattern of result.patterns) {
+    matches.push({
+      id: pattern.pattern_id,
+      type: 'pattern',
+      one_liner: buildPatternOneLiner(pattern),
+      verdict,
+      confidence: pattern.success_rate,
+      detail_command: `/debugger-detail ${pattern.pattern_id}`,
+    });
+  }
+
+  // Then incidents
+  for (const incident of result.incidents) {
+    matches.push({
+      id: incident.incident_id,
+      type: 'incident',
+      one_liner: buildOneLiner(incident),
+      verdict,
+      confidence: incident.similarity_score || incident.root_cause?.confidence || 0,
+      detail_command: `/debugger-detail ${incident.incident_id}`,
+    });
+  }
+
+  // Estimate tokens (~40 tokens per one-liner match)
+  const tokensUsed = matches.length * 40 + 60; // 60 for header/summary
+
+  return {
+    verdict,
+    summary: verdictSummary(verdict, result),
+    matches,
+    total_matches: matches.length,
+    tokens_used: tokensUsed,
+    action: verdictAction(verdict),
+  };
+}
+
+// ============================================================================
+// SCALED RETRIEVAL - Keyword index for O(log n) instead of O(n) search
+// ============================================================================
+
+/**
+ * Check memory using keyword index for scalable retrieval
+ *
+ * Instead of loading ALL incidents (O(n) file reads), this:
+ * 1. Extracts query keywords
+ * 2. Loads keyword index (1 file read)
+ * 3. Finds candidate IDs via set intersection
+ * 4. Loads only top candidates (max 20 file reads)
+ * 5. Scores and ranks
+ *
+ * Falls back to checkMemory() if keyword index doesn't exist.
+ */
+export async function checkMemoryScaled(
+  symptom: string,
+  config: Partial<RetrievalConfig> & { memoryConfig?: MemoryConfig } = {}
+): Promise<RetrievalResult> {
+  const { memoryConfig, ...retrievalConfig } = config;
+  const fullConfig = { ...DEFAULT_CONFIG, ...retrievalConfig };
+
+  // Load keyword index
+  const kwIndex = await loadKeywordIndex(memoryConfig);
+
+  if (!kwIndex || kwIndex.total_incidents < 10) {
+    // Too few incidents to benefit from index — use standard path
+    return checkMemory(symptom, { memoryConfig, ...fullConfig });
+  }
+
+  const queryWords = extractKeywords(symptom.toLowerCase());
+  if (queryWords.length === 0) {
+    return { incidents: [], patterns: [], confidence: 0, retrieval_method: 'incident', tokens_used: 0 };
+  }
+
+  // Find candidates via keyword index (O(1) per keyword)
+  const candidateIds = findCandidatesByKeyword(queryWords, kwIndex, 20);
+
+  if (candidateIds.length === 0) {
+    // No keyword matches — check patterns via standard path
+    const patterns = await matchPatterns(symptom, fullConfig, memoryConfig);
+    if (patterns.length > 0) {
+      return {
+        incidents: [],
+        patterns,
+        confidence: 0.9,
+        retrieval_method: 'pattern',
+        tokens_used: estimateTokens(patterns),
+      };
+    }
+    return { incidents: [], patterns: [], confidence: 0, retrieval_method: 'incident', tokens_used: 0 };
+  }
+
+  // Load only candidate incidents (max 20 file reads instead of all)
+  const candidateIncidents: Incident[] = [];
+  for (const id of candidateIds) {
+    const inc = await loadIncident(id, memoryConfig);
+    if (inc) candidateIncidents.push(inc);
+  }
+
+  // Score candidates
+  const now = Date.now();
+  const temporalCutoff = now - (fullConfig.temporal_preference || 90) * 24 * 60 * 60 * 1000;
+
+  const scored = candidateIncidents.map(incident => {
+    if (!incident.symptom || typeof incident.symptom !== 'string') {
+      return { incident, score: 0 };
+    }
+
+    const symptomSimilarity = calculateKeywordSimilarity(
+      queryWords,
+      extractKeywords(incident.symptom.toLowerCase())
+    );
+
+    const incidentTagWords = (incident.tags ?? []).flatMap(tag => tag.toLowerCase().split(/\s+/));
+    const tagMatches = queryWords.filter(word =>
+      incidentTagWords.some(tagWord => tagWord.includes(word) || word.includes(tagWord))
+    ).length;
+    const tagSimilarity = tagMatches / Math.max(queryWords.length, 1);
+
+    const age = now - incident.timestamp;
+    const temporalBoost = age < temporalCutoff ? 1.2 : 1.0;
+
+    const score = (symptomSimilarity * 0.6 + tagSimilarity * 0.4) * temporalBoost;
+    return { incident, score };
+  });
+
+  const incidents = scored
+    .filter(item => item.score >= fullConfig.similarity_threshold)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, fullConfig.max_results)
+    .map(item => ({ ...item.incident, similarity_score: item.score }));
+
+  // Also check patterns
+  const patterns = await matchPatterns(symptom, fullConfig, memoryConfig);
+
+  if (patterns.length > 0 && incidents.length === 0) {
+    return {
+      incidents: [],
+      patterns,
+      confidence: 0.9,
+      retrieval_method: 'pattern',
+      tokens_used: estimateTokens(patterns),
+    };
+  }
+
+  return {
+    incidents,
+    patterns,
+    confidence: incidents.length > 0 ? 0.7 : 0.0,
+    retrieval_method: incidents.length > 0 && patterns.length > 0 ? 'hybrid' : 'incident',
+    tokens_used: estimateTokens([...incidents, ...patterns]),
   };
 }

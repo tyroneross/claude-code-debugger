@@ -3,7 +3,13 @@
  * Auto-Setup Script
  *
  * Runs automatically after npm install to set up debugging memory.
- * Zero user action required - just install and it works.
+ * Zero user action required — just install and it works.
+ *
+ * What it does:
+ * 1. Creates memory directories (.claude/memory/)
+ * 2. Installs slash commands (/debugger, /debugger-detail, etc.)
+ * 3. Configures session hooks (auto-mine on session end)
+ * 4. Adds Debugging Memory section to CLAUDE.md
  */
 
 import * as fs from 'fs';
@@ -14,18 +20,12 @@ import { injectClaudeMd } from './inject-claude-md';
 
 /**
  * Find the project root
- *
- * During npm postinstall, process.cwd() is the target project root.
- * We use that directly as it's the most reliable method.
  */
 function findProjectRoot(): string {
   // npm sets INIT_CWD to the original working directory
-  // This is the most reliable way to find the target project
   if (process.env.INIT_CWD) {
     return process.env.INIT_CWD;
   }
-
-  // Fallback to cwd (which is usually correct during postinstall)
   return process.cwd();
 }
 
@@ -33,21 +33,9 @@ function findProjectRoot(): string {
  * Check if we should skip auto-setup
  */
 function shouldSkip(): boolean {
-  // Skip in CI environments
-  if (process.env.CI) {
-    return true;
-  }
-
-  // Skip global installs
-  if (process.env.npm_config_global === 'true') {
-    return true;
-  }
-
-  // Skip if explicitly disabled
-  if (process.env.CLAUDE_MEMORY_SKIP_SETUP === 'true') {
-    return true;
-  }
-
+  if (process.env.CI) return true;
+  if (process.env.npm_config_global === 'true') return true;
+  if (process.env.CLAUDE_MEMORY_SKIP_SETUP === 'true') return true;
   return false;
 }
 
@@ -55,94 +43,85 @@ function shouldSkip(): boolean {
  * Main auto-setup function
  */
 async function autoSetup(): Promise<void> {
-  if (shouldSkip()) {
-    return;
-  }
+  if (shouldSkip()) return;
 
   const projectRoot = findProjectRoot();
 
-  // Verify we found a real project (not just our package during development)
+  // Verify we found a real project
   const projectPkg = path.join(projectRoot, 'package.json');
-  if (!fs.existsSync(projectPkg)) {
-    return;
-  }
+  if (!fs.existsSync(projectPkg)) return;
 
   // Skip if this is our own package (development mode)
   try {
     const pkg = JSON.parse(fs.readFileSync(projectPkg, 'utf-8'));
-    if (pkg.name === '@tyroneross/claude-code-debugger') {
-      return;
-    }
-  } catch {
-    // Ignore parse errors
-  }
+    if (pkg.name === '@tyroneross/claude-code-debugger') return;
+  } catch { /* ignore */ }
 
-  console.log('\n🧠 Setting up debugging memory...\n');
+  const DIM = '\x1b[2m';
+  const GREEN = '\x1b[32m';
+  const CYAN = '\x1b[36m';
+  const RESET = '\x1b[0m';
+
+  console.log(`\n  ${GREEN}Claude Code Debugger${RESET} — Setting up debugging memory\n`);
+
+  const steps: string[] = [];
 
   try {
-    // 1. Create memory directories in the target project
+    // 1. Create memory directories
     const memoryPath = path.join(projectRoot, '.claude', 'memory');
     fs.mkdirSync(path.join(memoryPath, 'incidents'), { recursive: true });
     fs.mkdirSync(path.join(memoryPath, 'patterns'), { recursive: true });
     fs.mkdirSync(path.join(memoryPath, 'sessions'), { recursive: true });
-    console.log('✓ Created .claude/memory/');
+    steps.push('Created .claude/memory/ directories');
 
     // 2. Create slash commands
     try {
       const commandsCreated = await createSlashCommands(projectRoot);
       if (commandsCreated > 0) {
-        console.log(`✓ Added ${commandsCreated} slash commands`);
+        steps.push(`Installed ${commandsCreated} slash commands (/debugger, /debugger-detail, ...)`);
       }
-    } catch {
-      // Silently skip if slash commands can't be created
-    }
+    } catch { /* silently skip */ }
 
     // 3. Configure hooks
     try {
       const hooksConfigured = await configureHooks(projectRoot);
       if (hooksConfigured) {
-        console.log('✓ Configured session hooks');
+        steps.push('Configured auto-mining hook (saves debugging work on session end)');
       }
-    } catch {
-      // Silently skip if hooks can't be configured
-    }
+    } catch { /* silently skip */ }
 
     // 4. Inject into CLAUDE.md
     try {
       const claudeMdUpdated = await injectClaudeMd(projectRoot);
       if (claudeMdUpdated) {
-        console.log('✓ Updated CLAUDE.md');
+        steps.push('Updated CLAUDE.md with debugging memory docs');
       }
-    } catch {
-      // Silently skip if CLAUDE.md can't be updated
+    } catch { /* silently skip */ }
+
+    // Print what happened
+    for (const step of steps) {
+      console.log(`  ${GREEN}+${RESET} ${step}`);
     }
 
-    console.log('\n✅ Debugging memory is now active!\n');
-    console.log('┌─────────────────────────────────────────────┐');
-    console.log('│         🧠 Quick Start Guide                │');
-    console.log('├─────────────────────────────────────────────┤');
-    console.log('│                                             │');
-    console.log('│  Hit a bug? Run /debugger "error msg"       │');
-    console.log('│  to search past fixes before investigating. │');
-    console.log('│                                             │');
-    console.log('│  Fixes are saved automatically at session   │');
-    console.log('│  end — the more you debug, the smarter it   │');
-    console.log('│  gets. Use /debugger-status to see stats.   │');
-    console.log('│                                             │');
-    console.log('│  /debugger "symptom"  → search past bugs    │');
-    console.log('│  /debugger-status     → memory stats        │');
-    console.log('│  /debugger-scan       → mine past sessions  │');
-    console.log('│  /update              → check for updates   │');
-    console.log('│                                             │');
-    console.log('└─────────────────────────────────────────────┘');
+    console.log();
+    console.log(`  ${GREEN}Ready.${RESET} Debugging memory is now active.`);
+    console.log();
+    console.log(`  ${DIM}How it works:${RESET}`);
+    console.log(`  ${DIM}  - Debug bugs as usual — fixes get stored automatically${RESET}`);
+    console.log(`  ${DIM}  - Next time a similar bug appears, Claude checks memory first${RESET}`);
+    console.log(`  ${DIM}  - Use${RESET} ${CYAN}/debugger "symptom"${RESET} ${DIM}to search manually${RESET}`);
+    console.log();
+    console.log(`  ${DIM}Run${RESET} claude-code-debugger init ${DIM}for interactive setup${RESET}`);
+    console.log(`  ${DIM}Run${RESET} claude-code-debugger uninstall ${DIM}to remove${RESET}`);
+    console.log();
 
   } catch (error) {
-    // Don't fail install, just warn
-    console.warn('⚠️  Auto-setup skipped:', (error as Error).message);
+    // Don't fail npm install
+    console.warn(`  Setup skipped: ${(error as Error).message}\n`);
   }
 }
 
 // Run setup
 autoSetup().catch(() => {
-  // Silently fail - never break npm install
+  // Silently fail — never break npm install
 });

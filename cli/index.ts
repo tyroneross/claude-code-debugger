@@ -17,6 +17,9 @@ import {
   batchExtractPatterns,
   batchCleanup
 } from '../src/batch-operations';
+import { loadIncident, loadPattern, recordOutcome, rebuildKeywordIndex } from '../src/storage';
+import { generateSessionContext, checkFileContext } from '../src/context-engine';
+import { uninstall } from '../src/setup/uninstall';
 import { runInit } from './init';
 
 const program = new Command();
@@ -554,6 +557,103 @@ program
     }
   });
 
+// Session context command (for hooks)
+program
+  .command('session-context')
+  .description('Output session context as JSON (for hooks)')
+  .action(async () => {
+    try {
+      const context = await generateSessionContext();
+      console.log(JSON.stringify(context));
+    } catch (error: any) {
+      console.log(JSON.stringify({ ok: true, error: error.message }));
+    }
+  });
+
+// Check file context command (for PreToolUse hooks)
+program
+  .command('check-file <filepath>')
+  .description('Check if a file has past incidents (for hooks)')
+  .action(async (filepath: string) => {
+    try {
+      const result = await checkFileContext(filepath);
+      console.log(JSON.stringify(result));
+    } catch (error: any) {
+      console.log(JSON.stringify({ ok: true, has_incidents: false }));
+    }
+  });
+
+// Detail command (drill-down into specific incident/pattern)
+program
+  .command('detail <id>')
+  .description('Show full details for an incident or pattern')
+  .action(async (id: string) => {
+    try {
+      if (id.startsWith('INC_')) {
+        const incident = await loadIncident(id);
+        if (!incident) {
+          console.error(`Incident not found: ${id}`);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(incident, null, 2));
+      } else if (id.startsWith('PTN_')) {
+        const pattern = await loadPattern(id);
+        if (!pattern) {
+          console.error(`Pattern not found: ${id}`);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(pattern, null, 2));
+      } else {
+        console.error(`Invalid ID format: ${id} (expected INC_* or PTN_*)`);
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(`Error loading ${id}: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+// Outcome tracking command
+program
+  .command('outcome <incident_id> <result>')
+  .description('Record whether a suggested fix worked (worked|failed|modified)')
+  .option('--notes <text>', 'Additional notes about the outcome')
+  .action(async (incident_id: string, result: string, options: { notes?: string }) => {
+    try {
+      if (!['worked', 'failed', 'modified'].includes(result)) {
+        console.error('Result must be: worked, failed, or modified');
+        process.exit(1);
+      }
+
+      await recordOutcome({
+        incident_id,
+        verdict_given: 'KNOWN_FIX', // Default — actual verdict not tracked at CLI level
+        outcome: result as 'worked' | 'failed' | 'modified',
+        recorded_at: Date.now(),
+        notes: options.notes,
+      });
+
+      console.log(`Outcome recorded: ${incident_id} → ${result}`);
+    } catch (error: any) {
+      console.error(`Error recording outcome: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+// Rebuild keyword index command
+program
+  .command('rebuild-index')
+  .description('Rebuild keyword index from all incidents')
+  .action(async () => {
+    try {
+      const index = await rebuildKeywordIndex();
+      console.log(`Keyword index rebuilt: ${index.total_keywords} keywords from ${index.total_incidents} incidents`);
+    } catch (error: any) {
+      console.error(`Error rebuilding index: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
 // Init / onboarding command
 program
   .command('init')
@@ -565,6 +665,88 @@ program
       console.error('Setup failed:', error.message);
       process.exit(1);
     }
+  });
+
+// Uninstall command
+program
+  .command('uninstall')
+  .description('Remove debugging memory from this project')
+  .option('--remove-data', 'Also delete all stored memory data (incidents, patterns, sessions)')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .action(async (options: { removeData?: boolean; yes?: boolean }) => {
+    const projectRoot = process.cwd();
+
+    console.log('\n  Claude Code Debugger — Uninstall');
+    console.log('  ' + '\u2500'.repeat(40) + '\n');
+
+    if (options.removeData) {
+      console.log('  This will remove:');
+      console.log('    - Session hooks from .claude/settings.json');
+      console.log('    - Slash commands (/debugger, /debugger-detail, etc.)');
+      console.log('    - Debugging Memory section from CLAUDE.md');
+      console.log('    - ALL stored memory data (incidents, patterns, sessions)');
+      console.log();
+    } else {
+      console.log('  This will remove:');
+      console.log('    - Session hooks from .claude/settings.json');
+      console.log('    - Slash commands (/debugger, /debugger-detail, etc.)');
+      console.log('    - Debugging Memory section from CLAUDE.md');
+      console.log();
+      console.log('  Your memory data will be kept. Use --remove-data to delete it too.');
+      console.log();
+    }
+
+    if (!options.yes) {
+      const prompts = (await import('prompts')).default;
+      const { confirm } = await prompts({
+        type: 'confirm',
+        name: 'confirm',
+        message: options.removeData
+          ? 'Remove debugger AND all memory data? This cannot be undone.'
+          : 'Remove debugger from this project?',
+        initial: false,
+      });
+
+      if (!confirm) {
+        console.log('\n  Uninstall cancelled.\n');
+        return;
+      }
+    }
+
+    console.log();
+    const result = await uninstall(projectRoot, { removeData: options.removeData });
+
+    if (result.hooksRemoved) {
+      console.log('  \x1b[32m+\x1b[0m Hooks removed from .claude/settings.json');
+    } else {
+      console.log('  \x1b[2m-\x1b[0m No hooks to remove');
+    }
+
+    if (result.commandsRemoved.length > 0) {
+      console.log(`  \x1b[32m+\x1b[0m Removed ${result.commandsRemoved.length} slash commands`);
+    } else {
+      console.log('  \x1b[2m-\x1b[0m No commands to remove');
+    }
+
+    if (result.claudeMdCleaned) {
+      console.log('  \x1b[32m+\x1b[0m Cleaned CLAUDE.md');
+    } else {
+      console.log('  \x1b[2m-\x1b[0m CLAUDE.md already clean');
+    }
+
+    if (options.removeData) {
+      if (result.memoryRemoved) {
+        console.log('  \x1b[32m+\x1b[0m Deleted .claude/memory/');
+      } else {
+        console.log('  \x1b[2m-\x1b[0m No memory data to remove');
+      }
+    }
+
+    console.log('\n  Done. To reinstall later: claude-code-debugger init\n');
+
+    // Suggest npm uninstall
+    console.log('  \x1b[2mTo also remove the npm package:\x1b[0m');
+    console.log('  \x1b[2m  npm uninstall @tyroneross/claude-code-debugger\x1b[0m\n');
   });
 
 program.parse();

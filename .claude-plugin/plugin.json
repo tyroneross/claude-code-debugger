@@ -1,7 +1,7 @@
 {
   "name": "claude-code-debugger",
-  "version": "1.4.0",
-  "description": "Debugging memory system with parallel assessment, trace ingestion, and token optimization. Never solve the same bug twice.",
+  "version": "1.6.0",
+  "description": "Debugging memory with context engine, progressive depth, keyword indexing, outcome tracking, and benchmarking. Never solve the same bug twice.",
   "author": {
     "name": "Tyrone Ross",
     "email": "tyrone@rosslabs.ai",

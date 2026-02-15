@@ -30,6 +30,7 @@
     "prepublishOnly": "npm run build",
     "postinstall": "node dist/src/setup/auto-setup.js || true",
     "test": "node test-v1.4.0-e2e.js && node test-v1.5.0-e2e.js",
+    "benchmark": "node benchmark-scoring.js",
     "clean": "rm -rf dist"
   },
   "keywords": [

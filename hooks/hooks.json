@@ -4,8 +4,9 @@
       "matcher": "",
       "hooks": [
         {
-          "type": "prompt",
-          "prompt": "Debugging Memory is active for this session. Commands available:\n- /debugger \"<symptom>\" — Search past incidents for similar patterns\n- /debugger — Browse recent bugs\n- /debugger-scan — Find debugging work in this session\n- /debugger-status — Memory statistics\n\nWhen you encounter a bug, search memory BEFORE investigating.\n\nResponse: {\"ok\": true, \"reason\": \"Debugging Memory ready.\"}"
+          "type": "command",
+          "command": "npx @tyroneross/claude-code-debugger session-context 2>/dev/null || echo '{\"ok\":true}'",
+          "timeout": 5000
         }
       ]
     }
@@ -16,7 +17,7 @@
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "If this edit is fixing a bug or error, check debugging memory first:\n1. Search with /debugger \"<symptom>\" for past incidents\n2. Look for KNOWN_FIX or LIKELY_MATCH verdicts\n3. Past incidents may contain verified solutions\n\nThis is a suggestion — proceed with the edit.\n\nResponse: {\"ok\": true}"
+          "prompt": "If this edit is fixing a bug or error, check debugging memory first:\n1. Search with /debugger \"<symptom>\" for past incidents\n2. Look for KNOWN_FIX or LIKELY_MATCH verdicts\n3. Use /debugger-detail <ID> to drill into specific matches\n\nThis is a suggestion — proceed with the edit.\n\nResponse: {\"ok\": true}"
         }
       ]
     }

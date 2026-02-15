@@ -1,7 +1,7 @@
 ---
 name: debugging-memory
 description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Also activates when spawning subagents for debugging tasks, using Task tool for bug investigation, or coordinating multiple agents on a debugging problem. Provides memory-first debugging workflow that checks past incidents before investigating.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Debugging Memory Workflow
@@ -16,11 +16,22 @@ Before investigating any bug, always check the debugging memory:
 npx @tyroneross/claude-code-debugger debug "<symptom description>"
 ```
 
-**Decision tree based on results:**
+**Verdict-based decision tree:**
 
-1. **High confidence match (>70%)**: Apply the documented fix directly, adapting for current context
-2. **Medium confidence match (40-70%)**: Review the past incident, use it as a starting point
-3. **Low/no match (<40%)**: Proceed with standard debugging, document the solution afterward
+1. **KNOWN_FIX**: Apply the documented fix directly, adapting for current context
+2. **LIKELY_MATCH**: Review the past incident, use it as a starting point
+3. **WEAK_SIGNAL**: Consider loosely related incidents, but investigate fresh
+4. **NO_MATCH**: Proceed with standard debugging, document the solution afterward
+
+## Progressive Depth Retrieval
+
+Results are returned as one-liners to minimize token usage. Drill into matches on demand:
+
+1. **Initial search**: Returns one-liner summaries with IDs (~40 tokens each)
+2. **Drill down**: Use `/debugger-detail <ID>` to load full incident data (~550 tokens)
+3. **Outcome tracking**: After fixing, record with `claude-code-debugger outcome <ID> worked|failed|modified`
+
+This keeps initial context under 500 tokens even with 10+ matches.
 
 ## Visibility
 
