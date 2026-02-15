@@ -37,7 +37,15 @@ export {
   validateIncident,
   generateIncidentId,
   generatePatternId,
-  getMemoryStats
+  getMemoryStats,
+  // v1.5.0 additions
+  appendToIncidentLog,
+  searchIncidentLog,
+  rebuildIndex,
+  loadIndex,
+  buildMemorySummary,
+  archiveOldIncidents,
+  compressContext,
 } from './storage';
 
 // Interactive Verification
@@ -75,7 +83,10 @@ export {
   checkMemoryTiered,
   quickMemoryCheck,
   getIncidentDetails,
-  getPatternDetails
+  getPatternDetails,
+  // v1.5.0 verdict system
+  checkMemoryWithVerdict,
+  classifyVerdict,
 } from './retrieval';
 
 export type {
@@ -84,7 +95,13 @@ export type {
   IncidentSummary,
   TokenBudget,
   TieredRetrievalConfig,
-  TieredRetrievalResult
+  TieredRetrievalResult,
+  // v1.5.0 types
+  SearchVerdict,
+  VerdictResult,
+  MemoryIndex,
+  IncidentLogEntry,
+  ArchiveManifest,
 } from './types';
 
 // Parallel Retrieval

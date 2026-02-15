@@ -8,7 +8,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig } from './types';
+import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig, MemoryIndex, IncidentLogEntry } from './types';
 import { getMemoryPaths } from './config';
 import { buildIncidentInteractive, calculateQualityScore } from './interactive-verifier';
 
@@ -75,6 +75,12 @@ export async function storeIncident(
 
   console.log(`${qualityEmoji} Incident stored: ${finalIncident.incident_id} (quality: ${(finalIncident.completeness.quality_score * 100).toFixed(0)}%)`);
 
+  // Append to JSONL log for fast full-text search
+  await appendToIncidentLog(finalIncident, options.config);
+
+  // Rebuild index for O(1) lookups
+  await rebuildIndex(options.config);
+
   return {
     incident_id: finalIncident.incident_id,
     file_path: filepath
@@ -83,9 +89,9 @@ export async function storeIncident(
 
 /**
  * Validate incident ID format to prevent path traversal attacks
+ * Supports both formats: INC_YYYYMMDD_HHMMSS_xxxx and INC_CATEGORY_YYYYMMDD_HHMMSS_xxxx
  */
 function isValidIncidentId(incident_id: string): boolean {
-  // Only allow alphanumeric, underscores, and hyphens (INC_YYYYMMDD_HHMMSS_xxxx format)
   return /^INC_[\w\-]+$/.test(incident_id);
 }
 
@@ -114,7 +120,7 @@ export async function loadIncident(incident_id: string, config?: MemoryConfig): 
 }
 
 /**
- * Load all incidents
+ * Load all incidents with batched I/O (max 50 concurrent reads)
  */
 export async function loadAllIncidents(config?: MemoryConfig): Promise<Incident[]> {
   const paths = getMemoryPaths(config);
@@ -122,14 +128,24 @@ export async function loadAllIncidents(config?: MemoryConfig): Promise<Incident[
 
   try {
     const files = await fs.readdir(INCIDENTS_DIR);
+    const jsonFiles = files.filter(f => f.endsWith('.json'));
     const incidents: Incident[] = [];
 
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-
-      const filepath = path.join(INCIDENTS_DIR, file);
-      const content = await fs.readFile(filepath, 'utf-8');
-      incidents.push(JSON.parse(content) as Incident);
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < jsonFiles.length; i += BATCH_SIZE) {
+      const batch = jsonFiles.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (file) => {
+          try {
+            const filepath = path.join(INCIDENTS_DIR, file);
+            const content = await fs.readFile(filepath, 'utf-8');
+            return JSON.parse(content) as Incident;
+          } catch {
+            return null;
+          }
+        })
+      );
+      incidents.push(...results.filter((r): r is Incident => r !== null));
     }
 
     return incidents;
@@ -195,7 +211,7 @@ export async function loadPattern(pattern_id: string, config?: MemoryConfig): Pr
 }
 
 /**
- * Load all patterns
+ * Load all patterns with batched I/O (max 50 concurrent reads)
  */
 export async function loadAllPatterns(config?: MemoryConfig): Promise<Pattern[]> {
   const paths = getMemoryPaths(config);
@@ -203,14 +219,24 @@ export async function loadAllPatterns(config?: MemoryConfig): Promise<Pattern[]>
 
   try {
     const files = await fs.readdir(PATTERNS_DIR);
+    const jsonFiles = files.filter(f => f.endsWith('.json'));
     const patterns: Pattern[] = [];
 
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-
-      const filepath = path.join(PATTERNS_DIR, file);
-      const content = await fs.readFile(filepath, 'utf-8');
-      patterns.push(JSON.parse(content) as Pattern);
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < jsonFiles.length; i += BATCH_SIZE) {
+      const batch = jsonFiles.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (file) => {
+          try {
+            const filepath = path.join(PATTERNS_DIR, file);
+            const content = await fs.readFile(filepath, 'utf-8');
+            return JSON.parse(content) as Pattern;
+          } catch {
+            return null;
+          }
+        })
+      );
+      patterns.push(...results.filter((r): r is Pattern => r !== null));
     }
 
     return patterns;
@@ -257,13 +283,21 @@ export function validateIncident(incident: Incident): VerificationResult {
 }
 
 /**
- * Generate incident ID
+ * Generate incident ID with optional category prefix for self-documenting filenames
+ *
+ * Without category: INC_20250215_143022_a1b2
+ * With category:    INC_API_20250215_143022_a1b2
  */
-export function generateIncidentId(): string {
+export function generateIncidentId(category?: string): string {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = now.toISOString().slice(11, 19).replace(/:/g, '');
   const random = Math.random().toString(36).substring(2, 6);
+
+  if (category) {
+    const cleanCat = category.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+    return `INC_${cleanCat}_${dateStr}_${timeStr}_${random}`;
+  }
 
   return `INC_${dateStr}_${timeStr}_${random}`;
 }
@@ -485,4 +519,395 @@ export async function loadCompactPatterns(
 ): Promise<CompactPattern[]> {
   const patterns = await loadAllPatterns(config);
   return toCompactPatterns(patterns);
+}
+
+// ============================================================================
+// JSONL APPEND LOG - Fast full-text search without loading individual files
+// ============================================================================
+
+/**
+ * Append incident entry to JSONL log for fast search
+ */
+export async function appendToIncidentLog(
+  incident: Incident,
+  config?: MemoryConfig
+): Promise<void> {
+  const paths = getMemoryPaths(config);
+  const logPath = path.join(paths.root, 'incidents.jsonl');
+
+  const entry: IncidentLogEntry = {
+    incident_id: incident.incident_id,
+    timestamp: incident.timestamp,
+    symptom: incident.symptom,
+    category: incident.root_cause?.category || 'unknown',
+    tags: incident.tags || [],
+    quality_score: incident.completeness?.quality_score || 0,
+    verification_status: incident.verification?.status || 'unverified',
+    files_changed: incident.files_changed || [],
+  };
+
+  try {
+    await fs.appendFile(logPath, JSON.stringify(entry) + '\n', 'utf-8');
+  } catch {
+    // Log file doesn't exist yet, create it
+    await fs.mkdir(paths.root, { recursive: true });
+    await fs.writeFile(logPath, JSON.stringify(entry) + '\n', 'utf-8');
+  }
+}
+
+/**
+ * Search JSONL log for fast text matching (avoids loading all incident files)
+ */
+export async function searchIncidentLog(
+  query: string,
+  config?: MemoryConfig
+): Promise<IncidentLogEntry[]> {
+  const paths = getMemoryPaths(config);
+  const logPath = path.join(paths.root, 'incidents.jsonl');
+
+  try {
+    const content = await fs.readFile(logPath, 'utf-8');
+    const queryLower = query.toLowerCase();
+
+    return content
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        try { return JSON.parse(line) as IncidentLogEntry; }
+        catch { return null; }
+      })
+      .filter((entry): entry is IncidentLogEntry => {
+        if (!entry) return false;
+        return (
+          entry.symptom.toLowerCase().includes(queryLower) ||
+          entry.category.toLowerCase().includes(queryLower) ||
+          entry.tags.some(t => t.toLowerCase().includes(queryLower))
+        );
+      });
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
+// MEMORY INDEX - O(1) lookups by category, tag, file
+// ============================================================================
+
+/**
+ * Build or rebuild the memory index from all incidents
+ */
+export async function rebuildIndex(config?: MemoryConfig): Promise<MemoryIndex> {
+  const incidents = await loadAllIncidents(config);
+  const paths = getMemoryPaths(config);
+
+  const index: MemoryIndex = {
+    version: 1,
+    last_updated: Date.now(),
+    stats: {
+      total_incidents: incidents.length,
+      total_patterns: 0,
+      categories: {},
+      tags: {},
+      quality_distribution: { excellent: 0, good: 0, fair: 0 },
+      oldest_timestamp: Infinity,
+      newest_timestamp: 0,
+    },
+    by_category: {},
+    by_tag: {},
+    by_file: {},
+    by_quality: { excellent: [], good: [], fair: [] },
+    recent: [],
+  };
+
+  // Count patterns
+  try {
+    const patternFiles = await fs.readdir(paths.patterns);
+    index.stats.total_patterns = patternFiles.filter(f => f.endsWith('.json')).length;
+  } catch { /* patterns dir may not exist */ }
+
+  // Build indexes
+  for (const incident of incidents) {
+    const id = incident.incident_id;
+    const cat = incident.root_cause?.category || 'unknown';
+    const qs = incident.completeness?.quality_score || 0;
+
+    // Category index
+    if (!index.by_category[cat]) index.by_category[cat] = [];
+    index.by_category[cat].push(id);
+    index.stats.categories[cat] = (index.stats.categories[cat] || 0) + 1;
+
+    // Tag index
+    for (const tag of (incident.tags || [])) {
+      if (!index.by_tag[tag]) index.by_tag[tag] = [];
+      index.by_tag[tag].push(id);
+      index.stats.tags[tag] = (index.stats.tags[tag] || 0) + 1;
+    }
+
+    // File index
+    for (const file of (incident.files_changed || [])) {
+      if (!index.by_file[file]) index.by_file[file] = [];
+      index.by_file[file].push(id);
+    }
+
+    // Quality distribution
+    if (qs >= 0.75) {
+      index.by_quality.excellent.push(id);
+      index.stats.quality_distribution.excellent++;
+    } else if (qs >= 0.5) {
+      index.by_quality.good.push(id);
+      index.stats.quality_distribution.good++;
+    } else {
+      index.by_quality.fair.push(id);
+      index.stats.quality_distribution.fair++;
+    }
+
+    // Timestamps
+    if (incident.timestamp < index.stats.oldest_timestamp) {
+      index.stats.oldest_timestamp = incident.timestamp;
+    }
+    if (incident.timestamp > index.stats.newest_timestamp) {
+      index.stats.newest_timestamp = incident.timestamp;
+    }
+  }
+
+  // Fix infinity if no incidents
+  if (index.stats.oldest_timestamp === Infinity) index.stats.oldest_timestamp = 0;
+
+  // Recent (newest first, max 20)
+  index.recent = incidents
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 20)
+    .map(i => i.incident_id);
+
+  // Write index
+  const indexPath = path.join(paths.root, 'index.json');
+  await fs.mkdir(paths.root, { recursive: true });
+  await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
+
+  return index;
+}
+
+/**
+ * Load memory index (fast, no incident file reads needed)
+ */
+export async function loadIndex(config?: MemoryConfig): Promise<MemoryIndex | null> {
+  const paths = getMemoryPaths(config);
+  const indexPath = path.join(paths.root, 'index.json');
+
+  try {
+    const content = await fs.readFile(indexPath, 'utf-8');
+    return JSON.parse(content) as MemoryIndex;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// MEMORY SUMMARY - Compressed context for LLM cold starts
+// ============================================================================
+
+/**
+ * Build a compact MEMORY_SUMMARY.md for LLM context injection
+ * Stays under 150 lines to fit in context windows
+ */
+export async function buildMemorySummary(config?: MemoryConfig): Promise<string> {
+  const index = await loadIndex(config) || await rebuildIndex(config);
+  const patterns = await loadAllPatterns(config);
+
+  const lines: string[] = [];
+
+  lines.push('# Debugging Memory Summary');
+  lines.push(`> ${index.stats.total_incidents} incidents | ${index.stats.total_patterns} patterns`);
+  lines.push(`> Quality: ${index.stats.quality_distribution.excellent} excellent, ${index.stats.quality_distribution.good} good, ${index.stats.quality_distribution.fair} fair`);
+  lines.push('');
+
+  // Top categories
+  const sortedCats = Object.entries(index.stats.categories)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10);
+
+  if (sortedCats.length > 0) {
+    lines.push('## Categories');
+    for (const [cat, count] of sortedCats) {
+      lines.push(`- **${cat}**: ${count} incidents`);
+    }
+    lines.push('');
+  }
+
+  // Top tags
+  const sortedTags = Object.entries(index.stats.tags)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 15);
+
+  if (sortedTags.length > 0) {
+    lines.push('## Common Tags');
+    lines.push(sortedTags.map(([tag, count]) => `\`${tag}\`(${count})`).join(', '));
+    lines.push('');
+  }
+
+  // Patterns
+  if (patterns.length > 0) {
+    lines.push('## Known Patterns');
+    for (const p of patterns.slice(0, 10)) {
+      lines.push(`- **${p.name}** (${(p.success_rate * 100).toFixed(0)}% success) - ${p.description.slice(0, 80)}`);
+    }
+    lines.push('');
+  }
+
+  // Recent incidents (from index, no file reads)
+  if (index.recent.length > 0) {
+    lines.push('## Recent Incident IDs');
+    lines.push(index.recent.slice(0, 10).map(id => `\`${id}\``).join(', '));
+    lines.push('');
+  }
+
+  // Hot files
+  const sortedFiles = Object.entries(index.by_file)
+    .sort(([, a], [, b]) => b.length - a.length)
+    .slice(0, 10);
+
+  if (sortedFiles.length > 0) {
+    lines.push('## Frequently Affected Files');
+    for (const [file, ids] of sortedFiles) {
+      lines.push(`- \`${file}\` (${ids.length} incidents)`);
+    }
+    lines.push('');
+  }
+
+  lines.push(`*Updated: ${new Date().toISOString().slice(0, 19)}*`);
+
+  const content = lines.join('\n');
+
+  // Write to disk
+  const paths = getMemoryPaths(config);
+  const summaryPath = path.join(paths.root, 'MEMORY_SUMMARY.md');
+  await fs.mkdir(paths.root, { recursive: true });
+  await fs.writeFile(summaryPath, content, 'utf-8');
+
+  return content;
+}
+
+// ============================================================================
+// MEMORY ARCHIVAL - Evict old incidents to keep active set manageable
+// ============================================================================
+
+import type { ArchiveManifest } from './types';
+
+/**
+ * Archive incidents older than maxAge days, keeping at most maxActive incidents
+ */
+export async function archiveOldIncidents(
+  options: { maxActive?: number; maxAgeDays?: number; dryRun?: boolean } = {},
+  config?: MemoryConfig
+): Promise<{ archived: string[]; kept: number }> {
+  const { maxActive = 200, maxAgeDays = 180, dryRun = false } = options;
+  const paths = getMemoryPaths(config);
+  const archivePath = path.join(paths.root, 'archive');
+
+  const incidents = await loadAllIncidents(config);
+  const sorted = incidents.sort((a, b) => b.timestamp - a.timestamp);
+
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  const toArchive: Incident[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (i >= maxActive || sorted[i].timestamp < cutoff) {
+      toArchive.push(sorted[i]);
+    }
+  }
+
+  if (toArchive.length === 0) {
+    return { archived: [], kept: incidents.length };
+  }
+
+  console.log(`📦 ${dryRun ? '[DRY RUN] Would archive' : 'Archiving'} ${toArchive.length} incidents`);
+
+  if (!dryRun) {
+    // Create archive directory with timestamp
+    const archiveDir = path.join(archivePath, `archive_${Date.now()}`);
+    await fs.mkdir(archiveDir, { recursive: true });
+
+    // Move incidents to archive
+    for (const incident of toArchive) {
+      const srcPath = path.join(paths.incidents, `${incident.incident_id}.json`);
+      const destPath = path.join(archiveDir, `${incident.incident_id}.json`);
+      try {
+        await fs.rename(srcPath, destPath);
+      } catch {
+        // File may already be archived or missing
+      }
+    }
+
+    // Write manifest
+    const manifest: ArchiveManifest = {
+      archived_at: Date.now(),
+      incident_count: toArchive.length,
+      oldest_timestamp: Math.min(...toArchive.map(i => i.timestamp)),
+      newest_timestamp: Math.max(...toArchive.map(i => i.timestamp)),
+      reason: `Exceeded ${maxActive} active or older than ${maxAgeDays} days`,
+    };
+    await fs.writeFile(
+      path.join(archiveDir, 'manifest.json'),
+      JSON.stringify(manifest, null, 2),
+      'utf-8'
+    );
+
+    // Rebuild index and summary
+    await rebuildIndex(config);
+    await buildMemorySummary(config);
+  }
+
+  return {
+    archived: toArchive.map(i => i.incident_id),
+    kept: incidents.length - toArchive.length,
+  };
+}
+
+// ============================================================================
+// CONTEXT COMPRESSION - Compress memory for LLM context injection
+// ============================================================================
+
+/**
+ * Generate compressed context string optimized for LLM consumption
+ * Fits within token budget while maximizing information density
+ */
+export function compressContext(
+  incidents: CompactIncident[],
+  patterns: CompactPattern[],
+  budget: number = 2500
+): string {
+  const { limitedIncidents, limitedPatterns, tokensUsed, truncated } =
+    enforceTokenBudget(incidents, patterns, budget);
+
+  const sections: string[] = [];
+
+  // Header
+  sections.push(`[Memory: ${limitedIncidents.length}i/${limitedPatterns.length}p, ~${tokensUsed}tok]`);
+
+  // Patterns first (highest value)
+  if (limitedPatterns.length > 0) {
+    sections.push('PATTERNS:');
+    for (const p of limitedPatterns) {
+      sections.push(`  ${p.id}|${p.cat}|${(p.sr * 100).toFixed(0)}%|${p.desc}`);
+      sections.push(`  fix: ${p.fix}`);
+    }
+  }
+
+  // Incidents
+  if (limitedIncidents.length > 0) {
+    sections.push('INCIDENTS:');
+    for (const inc of limitedIncidents) {
+      const vLabel = inc.v === 'V' ? 'verified' : inc.v === 'P' ? 'partial' : 'unverified';
+      sections.push(`  ${inc.id}|${inc.rc.cat}|${(inc.rc.conf * 100).toFixed(0)}%|${vLabel}`);
+      sections.push(`  sym: ${inc.sym}`);
+      sections.push(`  fix: ${inc.fix.a}`);
+    }
+  }
+
+  // Truncation notice
+  if (truncated.incidents > 0 || truncated.patterns > 0) {
+    sections.push(`[+${truncated.incidents}i/${truncated.patterns}p omitted]`);
+  }
+
+  return sections.join('\n');
 }

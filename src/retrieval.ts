@@ -405,6 +405,8 @@ function fuzzyMatch(query: string, text: string, threshold: number): number {
 import type {
   TieredRetrievalConfig,
   TieredRetrievalResult,
+  SearchVerdict,
+  VerdictResult,
 } from './types';
 
 import {
@@ -601,4 +603,97 @@ export function estimateTokensForTier(
 
   const m = multipliers[tier];
   return incidentCount * m.incident + patternCount * m.pattern + 50; // +50 for overhead
+}
+
+// ============================================================================
+// VERDICT-FIRST RESPONSES - Actionable classification of search results
+// ============================================================================
+
+/**
+ * Classify search results into an actionable verdict
+ *
+ * Verdicts:
+ * - KNOWN_FIX:    High-confidence match with verified pattern (>0.8, verified)
+ * - LIKELY_MATCH:  Good match with relevant incidents (0.5-0.8)
+ * - WEAK_SIGNAL:   Possible relation, worth reviewing (0.3-0.5)
+ * - NO_MATCH:      Nothing found, debug fresh
+ */
+export function classifyVerdict(result: RetrievalResult): SearchVerdict {
+  // Pattern match with high confidence
+  if (result.patterns.length > 0 && result.confidence >= 0.8) {
+    const hasVerified = result.patterns.some(p => p.success_rate >= 0.7);
+    if (hasVerified) return 'KNOWN_FIX';
+  }
+
+  // Strong incident match
+  if (result.confidence >= 0.5) {
+    if (result.incidents.length > 0 || result.patterns.length > 0) {
+      return 'LIKELY_MATCH';
+    }
+  }
+
+  // Weak signal
+  if (result.confidence >= 0.3 && (result.incidents.length > 0 || result.patterns.length > 0)) {
+    return 'WEAK_SIGNAL';
+  }
+
+  return 'NO_MATCH';
+}
+
+/**
+ * Generate verdict action text
+ */
+function verdictAction(verdict: SearchVerdict): string {
+  switch (verdict) {
+    case 'KNOWN_FIX': return 'Apply the known fix pattern below';
+    case 'LIKELY_MATCH': return 'Review these similar incidents for guidance';
+    case 'WEAK_SIGNAL': return 'Consider these loosely related incidents';
+    case 'NO_MATCH': return 'No prior knowledge found — debug fresh';
+  }
+}
+
+/**
+ * Generate verdict summary text
+ */
+function verdictSummary(verdict: SearchVerdict, result: RetrievalResult): string {
+  switch (verdict) {
+    case 'KNOWN_FIX':
+      return `Known fix available (${result.patterns.length} pattern${result.patterns.length > 1 ? 's' : ''}, ${(result.confidence * 100).toFixed(0)}% confidence)`;
+    case 'LIKELY_MATCH':
+      return `${result.incidents.length} similar incident${result.incidents.length > 1 ? 's' : ''} found (${(result.confidence * 100).toFixed(0)}% confidence)`;
+    case 'WEAK_SIGNAL':
+      return `${result.incidents.length + result.patterns.length} loosely related result${result.incidents.length + result.patterns.length > 1 ? 's' : ''}`;
+    case 'NO_MATCH':
+      return 'This appears to be a new type of issue';
+  }
+}
+
+/**
+ * Check memory and return verdict-wrapped results
+ *
+ * This is the recommended entry point for memory-first debugging.
+ * Returns an actionable verdict instead of raw scores.
+ */
+export async function checkMemoryWithVerdict(
+  symptom: string,
+  config: Partial<RetrievalConfig> & { memoryConfig?: MemoryConfig } = {}
+): Promise<VerdictResult> {
+  const { memoryConfig, ...retrievalConfig } = config;
+  const fullConfig = { ...DEFAULT_CONFIG, ...retrievalConfig };
+
+  const result = await checkMemory(symptom, { memoryConfig, ...fullConfig });
+  const verdict = classifyVerdict(result);
+
+  const compactIncidents = result.incidents.map(toCompactIncident);
+  const compactPatterns = result.patterns.map(toCompactPattern);
+
+  return {
+    verdict,
+    summary: verdictSummary(verdict, result),
+    confidence: result.confidence,
+    incidents: compactIncidents,
+    patterns: compactPatterns,
+    tokens_used: result.tokens_used,
+    action: verdictAction(verdict),
+  };
 }

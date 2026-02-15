@@ -154,9 +154,10 @@ export async function storeDebugIncident(
     return { success: false, incident_id: '', verified: false };
   }
 
-  // Build complete incident
+  // Build complete incident (with category-prefixed ID)
+  const category = incident_data.root_cause?.category;
   const incident: Incident = {
-    incident_id: generateIncidentId(),
+    incident_id: generateIncidentId(category),
     timestamp: Date.now(),
     symptom: context.symptom,
     session_id: session_id,

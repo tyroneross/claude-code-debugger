@@ -463,3 +463,72 @@ export interface ResultsSummary {
   highest_confidence: number;
   has_verified_fix: boolean;
 }
+
+// ============================================================================
+// TIERED STORAGE - Index & Summary types (v1.5.0)
+// ============================================================================
+
+/**
+ * Verdict for search results - actionable classification
+ */
+export type SearchVerdict = 'KNOWN_FIX' | 'LIKELY_MATCH' | 'WEAK_SIGNAL' | 'NO_MATCH';
+
+/**
+ * Verdict-wrapped search result
+ */
+export interface VerdictResult {
+  verdict: SearchVerdict;
+  summary: string;
+  confidence: number;
+  incidents: CompactIncident[];
+  patterns: CompactPattern[];
+  tokens_used: number;
+  action: string;
+}
+
+/**
+ * Memory index for O(1) lookups without loading all files
+ */
+export interface MemoryIndex {
+  version: number;
+  last_updated: number;
+  stats: {
+    total_incidents: number;
+    total_patterns: number;
+    categories: Record<string, number>;
+    tags: Record<string, number>;
+    quality_distribution: { excellent: number; good: number; fair: number };
+    oldest_timestamp: number;
+    newest_timestamp: number;
+  };
+  by_category: Record<string, string[]>;   // category → incident_ids
+  by_tag: Record<string, string[]>;         // tag → incident_ids
+  by_file: Record<string, string[]>;        // file → incident_ids
+  by_quality: { excellent: string[]; good: string[]; fair: string[] };
+  recent: string[];                         // last 20 incident_ids (newest first)
+}
+
+/**
+ * Incident JSONL entry for append-only log
+ */
+export interface IncidentLogEntry {
+  incident_id: string;
+  timestamp: number;
+  symptom: string;
+  category: string;
+  tags: string[];
+  quality_score: number;
+  verification_status: string;
+  files_changed: string[];
+}
+
+/**
+ * Archive metadata for evicted incidents
+ */
+export interface ArchiveManifest {
+  archived_at: number;
+  incident_count: number;
+  oldest_timestamp: number;
+  newest_timestamp: number;
+  reason: string;
+}
