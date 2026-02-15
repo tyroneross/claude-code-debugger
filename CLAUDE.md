@@ -18,6 +18,36 @@ This project uses @tyroneross/claude-code-debugger for debugging memory.
 
 The system learns from your debugging sessions automatically.
 
+## v1.5.0 Storage Architecture
+
+**Tiered storage** (new):
+- `index.json` — O(1) lookups by category, tag, file, quality tier
+- `incidents.jsonl` — append-only log for fast full-text search
+- `MEMORY_SUMMARY.md` — compressed context for LLM cold starts (<150 lines)
+- Individual `INC_*.json` files loaded on-demand for full details
+
+**Verdict system** — search results return actionable verdicts:
+- `KNOWN_FIX` — high-confidence pattern match, apply directly
+- `LIKELY_MATCH` — similar incidents found, review for guidance
+- `WEAK_SIGNAL` — loosely related, worth considering
+- `NO_MATCH` — debug fresh, no prior knowledge
+
+**Compound IDs** — incident IDs now include category:
+- Format: `INC_CATEGORY_YYYYMMDD_HHMMSS_xxxx` (e.g., `INC_API_20260215_143022_a1b2`)
+- Self-documenting filenames — browse incidents without opening them
+
+**Memory management**:
+- Auto-archival: incidents beyond 200 active or 180 days old move to `archive/`
+- Context compression: `compressContext()` generates token-optimized strings
+- Batch I/O: file reads capped at 50 concurrent to prevent EMFILE errors
+
+**Key functions**:
+- `checkMemoryWithVerdict(symptom)` — recommended entry point (returns verdict)
+- `rebuildIndex()` / `loadIndex()` — manage the memory index
+- `buildMemorySummary()` — generate compressed summary
+- `searchIncidentLog(query)` — fast JSONL search
+- `archiveOldIncidents({ dryRun: true })` — preview archival
+
 ## Plugin Development
 
 This project is both an npm package and a Claude Code plugin.
@@ -34,3 +64,14 @@ Commands in `commands/` are read by:
 2. The npm postinstall script (copies to `.claude/commands/`)
 
 When updating commands, edit only `commands/*.md` - both systems will use them.
+
+## Architecture Patterns (from IBR & NavGator)
+
+This project follows patterns proven in Interface Built Right and NavGator:
+
+1. **Tiered storage** — summary (always-loaded) → index (fast lookup) → files (on-demand)
+2. **Verdict-first** — classify results into actions, not raw scores
+3. **Append-only logs** — JSONL for audit trail and fast search
+4. **Batch I/O** — cap concurrent file operations at 50
+5. **Compound IDs** — encode type/category in IDs for self-documentation
+6. **Context compression** — minimize token usage when injecting into LLM context

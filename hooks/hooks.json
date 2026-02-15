@@ -1,12 +1,45 @@
 {
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "Debugging Memory is active for this session. Commands available:\n- /debugger \"<symptom>\" — Search past incidents for similar patterns\n- /debugger — Browse recent bugs\n- /debugger-scan — Find debugging work in this session\n- /debugger-status — Memory statistics\n\nWhen you encounter a bug, search memory BEFORE investigating.\n\nResponse: {\"ok\": true, \"reason\": \"Debugging Memory ready.\"}"
+        }
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "If this edit is fixing a bug or error, check debugging memory first:\n1. Search with /debugger \"<symptom>\" for past incidents\n2. Look for KNOWN_FIX or LIKELY_MATCH verdicts\n3. Past incidents may contain verified solutions\n\nThis is a suggestion — proceed with the edit.\n\nResponse: {\"ok\": true}"
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "If this command was debugging-related (test runs, error reproduction, log inspection), this session's debugging work can be captured.\n\nAfter resolving the issue, document it by writing an incident file to .claude/memory/incidents/ or use /debugger-scan at session end.\n\nResponse: {\"ok\": true}"
+        }
+      ]
+    }
+  ],
   "Stop": [
     {
       "matcher": "",
       "hooks": [
         {
           "type": "command",
-          "command": "npx @tyroneross/claude-code-debugger mine --days 1 --store 2>/dev/null || true",
-          "timeout": 30000
+          "command": "npx @tyroneross/claude-code-debugger mine --days 1 --store 2>&1 | head -20 || echo 'Debugging Memory: mine completed or skipped'",
+          "timeout": 15000
         }
       ]
     }
