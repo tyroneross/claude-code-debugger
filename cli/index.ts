@@ -20,6 +20,26 @@ import {
 
 const program = new Command();
 
+function printQuickStart(): void {
+  console.log('┌─────────────────────────────────────────────┐');
+  console.log('│         🧠 Quick Start Guide                │');
+  console.log('├─────────────────────────────────────────────┤');
+  console.log('│                                             │');
+  console.log('│  Hit a bug? Run /debugger "error msg"       │');
+  console.log('│  to search past fixes before investigating. │');
+  console.log('│                                             │');
+  console.log('│  Fixes are saved automatically at session   │');
+  console.log('│  end — the more you debug, the smarter it   │');
+  console.log('│  gets. Use /debugger-status to see stats.   │');
+  console.log('│                                             │');
+  console.log('│  /debugger "symptom"  → search past bugs    │');
+  console.log('│  /debugger-status     → memory stats        │');
+  console.log('│  /debugger-scan       → mine past sessions  │');
+  console.log('│  /update              → check for updates   │');
+  console.log('│                                             │');
+  console.log('└─────────────────────────────────────────────┘');
+}
+
 program
   .name('claude-code-debugger')
   .description('Debugging memory system - never solve the same bug twice')
@@ -318,10 +338,80 @@ Version: ${version}
     });
   });
 
+// Setup command - re-run auto-setup to sync commands, hooks, and CLAUDE.md
+program
+  .command('setup')
+  .description('Re-run setup to sync slash commands, hooks, and CLAUDE.md')
+  .option('--force', 'Force overwrite existing files')
+  .action(async (options: { force?: boolean }) => {
+    const fs = await import('fs');
+    const pathMod = await import('path');
+
+    console.log('\n🔧 Claude Code Debugger - Setup');
+    console.log('═══════════════════════════════════════════════\n');
+
+    const projectRoot = process.env.INIT_CWD || process.cwd();
+
+    try {
+      // 1. Create memory directories
+      const memoryPath = pathMod.join(projectRoot, '.claude', 'memory');
+      fs.mkdirSync(pathMod.join(memoryPath, 'incidents'), { recursive: true });
+      fs.mkdirSync(pathMod.join(memoryPath, 'patterns'), { recursive: true });
+      fs.mkdirSync(pathMod.join(memoryPath, 'sessions'), { recursive: true });
+      console.log('   ✓ Memory directories ready');
+
+      // 2. Sync slash commands from package
+      const { createSlashCommands } = await import('../src/setup/create-slash-commands');
+      try {
+        const commandsCreated = await createSlashCommands(projectRoot, options.force);
+        if (commandsCreated > 0) {
+          console.log(`   ✓ Synced ${commandsCreated} slash commands`);
+        } else {
+          console.log('   ✓ Slash commands up to date');
+        }
+      } catch {
+        console.log('   ⚠ Could not sync slash commands');
+      }
+
+      // 3. Configure hooks
+      const { configureHooks } = await import('../src/setup/configure-hooks');
+      try {
+        const hooksConfigured = await configureHooks(projectRoot);
+        if (hooksConfigured) {
+          console.log('   ✓ Hooks configured');
+        } else {
+          console.log('   ✓ Hooks up to date');
+        }
+      } catch {
+        console.log('   ⚠ Could not configure hooks');
+      }
+
+      // 4. Inject into CLAUDE.md
+      const { injectClaudeMd } = await import('../src/setup/inject-claude-md');
+      try {
+        const claudeMdUpdated = await injectClaudeMd(projectRoot);
+        if (claudeMdUpdated) {
+          console.log('   ✓ Updated CLAUDE.md');
+        } else {
+          console.log('   ✓ CLAUDE.md up to date');
+        }
+      } catch {
+        console.log('   ⚠ Could not update CLAUDE.md');
+      }
+
+      console.log('\n✅ Setup complete! Debugging memory is active.\n');
+      printQuickStart();
+
+    } catch (error: any) {
+      console.error('❌ Setup failed:', error.message);
+      process.exit(1);
+    }
+  });
+
 // Update command
 program
   .command('update')
-  .description('Check for updates and optionally install the latest version')
+  .description('Check for updates and install the latest version via npx')
   .option('-y, --yes', 'Skip confirmation prompt and install immediately')
   .action(async (options: { yes?: boolean }) => {
     const { execSync } = await import('child_process');
@@ -334,7 +424,7 @@ program
       // Get current version
       console.log(`   Current version: ${version}`);
 
-      // Check latest version and changelog from npm
+      // Check latest version from npm registry
       const pkgInfoRaw = execSync('npm view @tyroneross/claude-code-debugger --json 2>/dev/null', {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe']
@@ -408,16 +498,50 @@ program
         return;
       }
 
-      // Perform update
-      console.log('\n📥 Installing update...\n');
+      // Detect installation context
+      const fs = await import('fs');
+      const pathMod = await import('path');
+      const cwd = process.cwd();
+      const isLocalDep = fs.existsSync(pathMod.join(cwd, 'node_modules', '@tyroneross', 'claude-code-debugger'));
+      const isGlobal = !isLocalDep && __dirname.includes('/lib/node_modules/');
 
-      execSync('npm install @tyroneross/claude-code-debugger@latest', {
-        stdio: 'inherit',
-        cwd: process.cwd()
-      });
+      // Perform update via npx (always fetches latest from registry)
+      console.log('\n📥 Installing update via npx...\n');
 
-      console.log('\n✅ Update complete!');
-      console.log('   Restart your terminal or run: npx @tyroneross/claude-code-debugger status\n');
+      if (isGlobal) {
+        // Global install: update globally
+        execSync('npm install -g @tyroneross/claude-code-debugger@latest', {
+          stdio: 'inherit'
+        });
+      } else if (isLocalDep) {
+        // Local project dependency: update in project
+        execSync('npm install @tyroneross/claude-code-debugger@latest', {
+          stdio: 'inherit',
+          cwd
+        });
+      } else {
+        // Running via npx: install as local dependency
+        execSync('npm install @tyroneross/claude-code-debugger@latest', {
+          stdio: 'inherit',
+          cwd
+        });
+      }
+
+      // Re-run setup to sync commands, hooks, and CLAUDE.md
+      console.log('\n🔧 Syncing commands and hooks...\n');
+      try {
+        execSync('npx @tyroneross/claude-code-debugger@latest setup', {
+          stdio: 'inherit',
+          cwd,
+          env: { ...process.env, INIT_CWD: cwd }
+        });
+      } catch {
+        console.log('   ⚠ Auto-setup skipped (run manually: npx @tyroneross/claude-code-debugger setup)');
+      }
+
+      console.log('\n✅ Update complete! Now running v' + latestVersion);
+      console.log('   Verify: npx @tyroneross/claude-code-debugger --version\n');
+      printQuickStart();
 
     } catch (error: any) {
       if (error.message?.includes('npm view')) {

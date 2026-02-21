@@ -47,7 +47,7 @@ function loadPluginCommands(): Array<{ name: string; content: string }> {
   }));
 }
 
-export async function createSlashCommands(projectRoot: string): Promise<number> {
+export async function createSlashCommands(projectRoot: string, force?: boolean): Promise<number> {
   const commandsDir = path.join(projectRoot, '.claude', 'commands');
 
   if (!fs.existsSync(commandsDir)) {
@@ -64,7 +64,7 @@ export async function createSlashCommands(projectRoot: string): Promise<number> 
   let created = 0;
   for (const cmd of commands) {
     const cmdPath = path.join(commandsDir, cmd.name);
-    if (!fs.existsSync(cmdPath)) {
+    if (force || !fs.existsSync(cmdPath)) {
       fs.writeFileSync(cmdPath, cmd.content);
       created++;
     }
