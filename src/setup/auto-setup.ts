@@ -117,9 +117,24 @@ async function autoSetup(): Promise<void> {
       // Silently skip if CLAUDE.md can't be updated
     }
 
-    console.log('\n✅ Debugging memory is now active!');
-    console.log('   Claude will check past solutions automatically.');
-    console.log('   Commands: /debugger "symptom" | /debugger-status | /update\n');
+    console.log('\n✅ Debugging memory is now active!\n');
+    console.log('┌─────────────────────────────────────────────┐');
+    console.log('│         🧠 Quick Start Guide                │');
+    console.log('├─────────────────────────────────────────────┤');
+    console.log('│                                             │');
+    console.log('│  Hit a bug? Run /debugger "error msg"       │');
+    console.log('│  to search past fixes before investigating. │');
+    console.log('│                                             │');
+    console.log('│  Fixes are saved automatically at session   │');
+    console.log('│  end — the more you debug, the smarter it   │');
+    console.log('│  gets. Use /debugger-status to see stats.   │');
+    console.log('│                                             │');
+    console.log('│  /debugger "symptom"  → search past bugs    │');
+    console.log('│  /debugger-status     → memory stats        │');
+    console.log('│  /debugger-scan       → mine past sessions  │');
+    console.log('│  /update              → check for updates   │');
+    console.log('│                                             │');
+    console.log('└─────────────────────────────────────────────┘');
 
   } catch (error) {
     // Don't fail install, just warn
