@@ -1,48 +1,48 @@
 {
-  "SessionStart": [
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "npx @tyroneross/claude-code-debugger session-context 2>/dev/null || echo '{\"ok\":true}'",
-          "timeout": 5000
-        }
-      ]
-    }
-  ],
-  "PreToolUse": [
-    {
-      "matcher": "Edit|Write",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "If this edit is fixing a bug or error, check debugging memory first:\n1. Search with /debugger \"<symptom>\" for past incidents\n2. Look for KNOWN_FIX or LIKELY_MATCH verdicts\n3. Use /debugger-detail <ID> to drill into specific matches\n\nThis is a suggestion — proceed with the edit.\n\nResponse: {\"ok\": true}"
-        }
-      ]
-    }
-  ],
-  "PostToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "If this command was debugging-related (test runs, error reproduction, log inspection), this session's debugging work can be captured.\n\nAfter resolving the issue, document it by writing an incident file to .claude/memory/incidents/ or use /debugger-scan at session end.\n\nResponse: {\"ok\": true}"
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "npx @tyroneross/claude-code-debugger mine --days 1 --store 2>&1 | head -20 || echo 'Debugging Memory: mine completed or skipped'",
-          "timeout": 15000
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check debugging memory status using the debugger `status` MCP tool. When debugging issues later, use the debugger `search` MCP tool before investigating."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If this edit is fixing a bug, use the debugger `search` MCP tool first to check for similar past incidents.\n\nThis is a suggestion — proceed with the edit.\n\nResponse: {\"ok\": true}"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If this command was debugging-related, remember to document the fix using the debugger `store` MCP tool.\n\nResponse: {\"ok\": true}"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If debugging work was done this session, use the debugger `store` MCP tool to record any resolved incidents."
+          }
+        ]
+      }
+    ]
+  }
 }

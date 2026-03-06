@@ -1,6 +1,6 @@
 {
   "name": "claude-code-debugger",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Debugging memory with context engine, progressive depth, keyword indexing, outcome tracking, and benchmarking. Never solve the same bug twice.",
   "author": {
     "name": "Tyrone Ross",
@@ -23,5 +23,6 @@
   "commands": "./commands",
   "skills": "./skills",
   "hooks": "./hooks/hooks.json",
-  "agents": "./agents"
+  "agents": "./agents",
+  "mcpServers": "../.mcp.json"
 }

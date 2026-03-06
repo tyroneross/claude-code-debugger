@@ -1,7 +1,7 @@
 ---
 name: debugging-memory
 description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Also activates when spawning subagents for debugging tasks, using Task tool for bug investigation, or coordinating multiple agents on a debugging problem. Provides memory-first debugging workflow that checks past incidents before investigating.
-version: 1.3.0
+version: 1.4.0
 ---
 
 # Debugging Memory Workflow
@@ -10,11 +10,13 @@ This skill integrates the claude-code-debugger memory system into debugging work
 
 ## Memory-First Approach
 
-Before investigating any bug, always check the debugging memory:
+Before investigating any bug, always check the debugging memory using the debugger `search` MCP tool:
 
-```bash
-npx @tyroneross/claude-code-debugger debug "<symptom description>"
 ```
+Use the debugger search tool with the symptom description.
+```
+
+The search returns a **verdict** with matching incidents and patterns.
 
 **Verdict-based decision tree:**
 
@@ -25,13 +27,11 @@ npx @tyroneross/claude-code-debugger debug "<symptom description>"
 
 ## Progressive Depth Retrieval
 
-Results are returned as one-liners to minimize token usage. Drill into matches on demand:
+Results are returned as compact summaries. Drill into matches on demand:
 
-1. **Initial search**: Returns one-liner summaries with IDs (~40 tokens each)
-2. **Drill down**: Use `/debugger-detail <ID>` to load full incident data (~550 tokens)
-3. **Outcome tracking**: After fixing, record with `claude-code-debugger outcome <ID> worked|failed|modified`
-
-This keeps initial context under 500 tokens even with 10+ matches.
+1. **Initial search**: Use the debugger `search` MCP tool — returns verdict + compact matches
+2. **Drill down**: Use the debugger `detail` MCP tool with the ID to load full incident/pattern data
+3. **Outcome tracking**: Use the debugger `outcome` MCP tool to record whether the fix worked, failed, or was modified
 
 ## Visibility
 
@@ -85,11 +85,20 @@ Confirm the fix works:
 
 ## Incident Documentation
 
-After fixing a bug, document it for future retrieval.
+After fixing a bug, use the debugger `store` MCP tool to document it for future retrieval.
 
-### Manual Incident Storage (Preferred Method)
+The store tool accepts:
+- **symptom** (required): User-facing description of the bug
+- **root_cause** (required): Technical explanation of why the bug occurred
+- **fix** (required): What was done to fix it
+- **category**: Root cause category (logic, config, dependency, performance, react-hooks)
+- **tags**: Search keywords for future retrieval
+- **files_changed**: List of files that were modified
+- **file**: Primary file where the bug was located
 
-**Claude Code should directly write incident files** to `.claude/memory/incidents/` using the Write tool. No CLI command needed.
+### Manual Incident Storage (Alternative)
+
+Claude Code can also directly write incident files to `.claude/memory/incidents/` using the Write tool.
 
 **Step 1: Generate incident ID**
 ```
@@ -142,29 +151,6 @@ Before writing, create the directory if needed:
 mkdir -p .claude/memory/incidents
 ```
 
-### Automatic Capture (Session End)
-
-The Stop hook automatically mines the session audit trail when a session ends:
-```bash
-npx @tyroneross/claude-code-debugger mine --days 1 --store
-```
-
-**Audit Trail Limitations:**
-- Audit trail is written by Claude Code at session end, not during the session
-- Location: `.claude/audit/` (markdown files from completed sessions)
-- Mining only works on previously completed sessions
-- **For mid-session capture: Always use manual storage above**
-
-**When mining returns 0 incidents:**
-1. No previous sessions have completed in this project
-2. Previous sessions didn't involve debugging work
-3. The audit directory doesn't exist yet (first session)
-
-**Recommended workflow:**
-- Don't rely on mining - always manually store important incidents
-- Mining is a fallback for sessions where manual storage was forgotten
-- Use `/debugger-scan` to check what can be mined from past sessions
-
 ### Quality Indicators
 
 The memory system scores incidents on:
@@ -200,14 +186,17 @@ When a pattern matches:
 - Apply the recommended approach
 - Note any caveats mentioned
 
-## CLI Quick Reference
+## MCP Tools Quick Reference
 
-| Command | Purpose |
-|---------|---------|
-| `/debugger "symptom"` | Search memory for similar bugs |
-| `/debugger-status` | Show memory statistics |
-| `/debugger-scan` | Mine recent sessions for incidents |
-| `/assess "symptom"` | Run parallel domain assessment |
+| Tool | Purpose |
+|------|---------|
+| `search` | Search memory for similar bugs (returns verdict) |
+| `store` | Store a new debugging incident |
+| `detail` | Get full details of an incident or pattern |
+| `status` | Show memory statistics |
+| `list` | List recent incidents |
+| `patterns` | List known fix patterns |
+| `outcome` | Record whether a fix worked |
 
 ## Parallel Domain Assessment
 
@@ -309,15 +298,6 @@ Default budget: 2500 tokens
 
 The system automatically selects the appropriate tier based on available budget.
 
-## Additional Resources
-
-For detailed guidance, consult:
-
-- **`references/incident-documentation.md`** - Complete guide to documenting incidents
-- **`references/pattern-extraction.md`** - How patterns are extracted and used
-- **`references/subagent-integration.md`** - How to integrate with custom subagents
-- **`examples/incident-example.json`** - Sample high-quality incident
-
 ## Subagent Integration
 
 When debugging involves subagents (your own or from other plugins), follow these guidelines to ensure debugging memory is utilized.
@@ -325,7 +305,7 @@ When debugging involves subagents (your own or from other plugins), follow these
 ### Automatic Behavior
 
 **Before spawning debugging-related subagents:**
-1. Search debugging memory first: `npx @tyroneross/claude-code-debugger debug "<symptom>"`
+1. Search debugging memory first using the debugger `search` MCP tool
 2. Pass relevant context to the subagent in its prompt
 3. Include any matching incidents or patterns found
 
@@ -347,69 +327,25 @@ Start your investigation considering this prior knowledge.
 
 1. **External MCP tools**: "Note: The debugging subagent is using external MCP tools that cannot access local debugging memory. I searched memory beforehand and found [X matching incidents / no matches]."
 
-2. **Third-party agents**: "Note: This third-party debugging agent doesn't have access to your project's debugging memory. Consider using `/debugger` first to check for similar past issues."
+2. **Third-party agents**: "Note: This third-party debugging agent doesn't have access to your project's debugging memory. Consider searching debugging memory first to check for similar past issues."
 
 3. **Sandboxed environments**: "Note: The subagent runs in a sandboxed environment without access to debugging memory. I've pre-loaded relevant context from [X] matching incidents."
 
-### Integrating Debugger Into Your Own Subagents
-
-If you create custom debugging subagents, include this in their system prompt:
-
-```markdown
-## Debugging Memory Integration
-
-Before investigating, check the debugging memory:
-
-\`\`\`bash
-npx @tyroneross/claude-code-debugger debug "<symptom>"
-\`\`\`
-
-Use results to:
-- Skip re-investigation of known issues (confidence >70%)
-- Use past fixes as starting points (confidence 40-70%)
-- Document new findings after resolution
-
-After fixing, document the incident by writing a JSON file to:
-\`\`\`
-.claude/memory/incidents/INC_YYYYMMDD_HHMMSS_xxxx.json
-\`\`\`
-```
-
-### Subagent Tool Requirements
-
-For full debugging memory access, subagents need:
-- `Bash` tool - to run CLI commands
-- `Read` tool - to examine incident files (optional but helpful)
-
-If a subagent lacks `Bash` access, it cannot query debugging memory directly. In this case:
-1. Query memory yourself before spawning the subagent
-2. Include relevant findings in the subagent prompt
-3. Document any new findings after the subagent completes
-
 ### Coordinating Multiple Debugging Subagents
 
-When using parallel assessment (`/assess`) or multiple debugging subagents:
+When using parallel assessment or multiple debugging subagents:
 
-1. **Pre-query memory once** before spawning agents
+1. **Pre-query memory once** using the debugger `search` MCP tool before spawning agents
 2. **Distribute context** - each agent gets relevant subset
 3. **Aggregate findings** - collect new insights from all agents
-4. **Store unified incident** - document the combined diagnosis
-
-```
-Example flow:
-1. Search: npx @tyroneross/claude-code-debugger debug "app crashing on login"
-2. Spawn parallel: database-assessor, api-assessor, frontend-assessor
-   - Each receives: symptom + relevant past incidents
-3. Collect: assessments from all agents
-4. Store: unified incident with root cause from winning assessment
-```
+4. **Store unified incident** - use the debugger `store` MCP tool to document the combined diagnosis
 
 ## Best Practices
 
-1. **Always check memory first** - Saves time on previously solved bugs
-2. **Document every fix** - Future debugging benefits from current work
+1. **Always check memory first** - Use the `search` tool before investigating any bug
+2. **Document every fix** - Use the `store` tool after resolving bugs
 3. **Use descriptive symptoms** - Better matching requires good descriptions
 4. **Include verification status** - Helps prioritize trusted solutions
-5. **Run periodic scans** - Capture debugging sessions from audit trail
+5. **Record outcomes** - Use the `outcome` tool to improve future verdicts
 6. **Pass context to subagents** - Don't let debugging knowledge stay siloed
 7. **Inform users of limitations** - Be transparent when memory can't be accessed
