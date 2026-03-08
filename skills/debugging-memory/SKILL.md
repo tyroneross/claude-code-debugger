@@ -1,7 +1,8 @@
 ---
 name: debugging-memory
 description: This skill should be used when the user asks to "debug this", "fix this bug", "why is this failing", "investigate error", "getting an error", "exception thrown", "crash", "not working", "what's causing this", "root cause", "diagnose this issue", or describes any software bug or error. Also activates when spawning subagents for debugging tasks, using Task tool for bug investigation, or coordinating multiple agents on a debugging problem. Provides memory-first debugging workflow that checks past incidents before investigating.
-version: 1.4.0
+version: 1.5.0
+user-invocable: false
 ---
 
 # Debugging Memory Workflow
