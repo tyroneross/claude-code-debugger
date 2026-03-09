@@ -61,7 +61,9 @@ Patterns are extracted automatically when conditions are met:
 
 ### Triggering Extraction
 
-Run pattern extraction manually:
+Use the `debugger patterns` MCP tool to preview and extract patterns.
+
+CLI alternative (if MCP unavailable):
 
 ```bash
 # Preview potential patterns

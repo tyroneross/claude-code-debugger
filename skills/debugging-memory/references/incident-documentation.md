@@ -219,10 +219,10 @@ Example: `INC_20241231_143052_a7b2` where:
 
 ```
 1. Bug reported: "Search not working"
-2. Search memory: npx @tyroneross/claude-code-debugger debug "search not working"
+2. Search memory via `debugger search` MCP tool: "search not working"
 3. Found match? → Apply fix
    No match? → Investigate and fix
-4. Write incident JSON to .claude/memory/incidents/INC_xxx.json
+4. Store via `debugger store` MCP tool (or write JSON to .claude/memory/incidents/INC_xxx.json)
 5. Future searches will find this incident
 ```
 

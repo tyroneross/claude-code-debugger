@@ -15,17 +15,26 @@ The debugging memory system works best when all agents in a workflow can access 
 
 ### Requirements
 
-For a subagent to directly access debugging memory, it needs:
+For a subagent to directly access debugging memory, it needs **one of**:
 
-| Tool | Required | Purpose |
-|------|----------|---------|
-| `Bash` | Yes | Run CLI commands |
-| `Read` | Optional | Examine incident files |
-| `Write` | Optional | Store new incidents |
+| Access Method | When to Use | Tools Needed |
+|---------------|-------------|--------------|
+| **MCP tools** (preferred) | Agent runs within Claude Code plugin context | MCP tool access |
+| **CLI fallback** | Agent only has Bash, no MCP access | `Bash` |
+| **Proxy** | Agent has no direct access | None (parent pre-queries) |
 
-### Adding to Your Agent Definition
+### Direct Integration via MCP (Preferred)
 
-In your agent's `.md` file, include `Bash` in the tools array:
+When the debugger plugin is installed, agents can call MCP tools directly:
+
+- `debugger search` — search past incidents by symptom
+- `debugger detail` — get full incident details
+- `debugger store` — store new incidents
+- `debugger patterns` — view extracted patterns
+
+### CLI Fallback for Restricted Agents
+
+For agents that only have Bash access (no MCP), use CLI commands:
 
 ```yaml
 ---
@@ -35,9 +44,7 @@ tools: ["Bash", "Read", "Grep"]
 ---
 ```
 
-### System Prompt Addition
-
-Add this section to your agent's system prompt:
+Add this to the agent's system prompt:
 
 ```markdown
 ## Debugging Memory
@@ -60,6 +67,8 @@ Write incident JSON to `.claude/memory/incidents/INC_YYYYMMDD_HHMMSS_xxxx.json`
 This ensures fixes are remembered for future similar issues.
 ```
 
+> Note: CLI is the correct approach here — these agents lack MCP tool access.
+
 ## Proxy Integration
 
 When subagents cannot directly access debugging memory (no Bash tool, sandboxed, external MCP), use proxy integration.
@@ -76,6 +85,8 @@ When subagents cannot directly access debugging memory (no Bash tool, sandboxed,
 ### Implementation
 
 **Step 1: Search before spawning**
+
+Use the `debugger search` MCP tool with the symptom description. If MCP is unavailable, fall back to CLI:
 
 ```bash
 npx @tyroneross/claude-code-debugger debug "user login failing with 401"
@@ -267,7 +278,7 @@ any new findings with `/debugger-scan` to capture this session.
 User: "The checkout is broken - showing wrong totals and timing out"
 
 Claude Code:
-1. Searches memory: `npx @tyroneross/claude-code-debugger debug "checkout wrong totals timeout"`
+1. Searches memory via `debugger search` MCP tool: "checkout wrong totals timeout"
    - Found: INC_20241210_checkout_math (confidence: 0.72)
    - Found: PTN_timeout_database (confidence: 0.58)
 
