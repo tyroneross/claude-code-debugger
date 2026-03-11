@@ -21,7 +21,8 @@ export type TraceSource =
   | 'langchain'
   | 'chrome-devtools'
   | 'playwright'
-  | 'browser-console';
+  | 'browser-console'
+  | 'internal';
 
 /**
  * Trace severity levels (normalized across sources)

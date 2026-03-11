@@ -154,6 +154,20 @@ export function displayTokenConfig(config?: TokenConfig): void {
 }
 
 /**
+ * Get paths for internal logger storage
+ *
+ * Logs are stored under .claude-code-debugger/logs/ in the project root.
+ * Separate from memory paths — these are operational logs, not debugging incidents.
+ */
+export function getLogPaths() {
+  return {
+    root: path.join(process.cwd(), '.claude-code-debugger', 'logs'),
+    operations: path.join(process.cwd(), '.claude-code-debugger', 'logs', 'operations.jsonl'),
+    errors: path.join(process.cwd(), '.claude-code-debugger', 'logs', 'errors.jsonl'),
+  };
+}
+
+/**
  * Get paths for trace storage
  */
 export function getTracePaths(config?: MemoryConfig) {
