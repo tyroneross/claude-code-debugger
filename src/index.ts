@@ -178,3 +178,11 @@ export {
 
 // Trace Ingestion (v1.4.0)
 export * from './traces';
+
+// Internal Logger (v1.8.0)
+export { traced, log, readLogs, configureLogger } from './logger';
+export type { LogLevel, LogEntry, LoggerConfig, ReadLogsOptions } from './logger';
+
+// Log Reader (v1.8.0)
+export { readProjectLogs } from './log-reader';
+export type { LogSource, LogSeverity, LogReaderOptions, LogItem, LogReaderResult } from './log-reader';

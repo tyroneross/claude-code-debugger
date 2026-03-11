@@ -3,11 +3,12 @@
  * Debugger MCP Server
  *
  * JSON-RPC 2.0 over stdio (MCP protocol).
- * Exposes debugging memory tools: search, store, detail, status, list, patterns, outcome.
+ * Exposes debugging memory tools: search, store, detail, status, list, patterns, outcome, read_logs.
  */
 
 import { createInterface } from 'readline';
 import { TOOLS, handleToolCall } from './tools';
+import { configureLogger } from '../logger';
 
 // --- JSON-RPC transport over stdio ---
 
@@ -107,6 +108,9 @@ async function handleMessage(msg: {
     }
   }
 }
+
+// Initialize internal logger
+configureLogger();
 
 // Log to stderr so it doesn't interfere with the protocol
 process.stderr.write('Debugger MCP server started\n');
