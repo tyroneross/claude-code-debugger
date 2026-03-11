@@ -10,6 +10,7 @@ import path from 'path';
 import type { Incident, MemoryConfig } from './types';
 import { storeIncident, generateIncidentId, loadAllIncidents } from './storage';
 import { getConfig } from './config';
+import { traced } from './logger';
 
 const getAuditDir = () => path.join(process.cwd(), '.claude/audit');
 
@@ -31,6 +32,7 @@ export async function mineAuditTrail(options: {
   min_confidence?: number;
   config?: MemoryConfig;
 } = {}): Promise<Incident[]> {
+  return traced('audit:mineTrail', { days_back: options.days_back }, async () => {
 
   const {
     days_back = 30,
@@ -91,6 +93,7 @@ export async function mineAuditTrail(options: {
   }
 
   return incidents;
+  });
 }
 
 /**

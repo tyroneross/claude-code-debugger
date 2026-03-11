@@ -14,6 +14,7 @@ import type {
 } from './types';
 import { loadAllIncidents, loadAllPatterns } from './storage';
 import natural from 'natural';
+import { traced } from './logger';
 
 /**
  * Default retrieval configuration
@@ -44,6 +45,7 @@ export async function checkMemory(
   symptom: string,
   config: Partial<RetrievalConfig> & { memoryConfig?: MemoryConfig } = {}
 ): Promise<RetrievalResult> {
+  return traced('retrieval:checkMemory', { symptom: symptom.slice(0, 100) }, async () => {
 
   const { memoryConfig, ...retrievalConfig } = config;
   const fullConfig = { ...DEFAULT_CONFIG, ...retrievalConfig };
@@ -76,6 +78,7 @@ export async function checkMemory(
     retrieval_method: 'incident',
     tokens_used: estimateTokens(incidents)
   };
+  });
 }
 
 /**
@@ -683,6 +686,7 @@ export async function checkMemoryWithVerdict(
   symptom: string,
   config: Partial<RetrievalConfig> & { memoryConfig?: MemoryConfig } = {}
 ): Promise<VerdictResult> {
+  return traced('retrieval:checkMemoryWithVerdict', { symptom: symptom.slice(0, 100) }, async () => {
   const { memoryConfig, ...retrievalConfig } = config;
   const fullConfig = { ...DEFAULT_CONFIG, ...retrievalConfig };
 
@@ -701,6 +705,7 @@ export async function checkMemoryWithVerdict(
     tokens_used: result.tokens_used,
     action: verdictAction(verdict),
   };
+  });
 }
 
 // ============================================================================

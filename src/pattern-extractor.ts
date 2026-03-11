@@ -8,6 +8,7 @@
 import type { Incident, Pattern, MemoryConfig } from './types';
 import { loadAllIncidents, storePattern, generatePatternId } from './storage';
 import { loadAllPatterns } from './storage';
+import { traced } from './logger';
 
 interface PatternCandidate {
   category: string;
@@ -26,6 +27,7 @@ export async function extractPatterns(options: {
   auto_store?: boolean;
   config?: MemoryConfig;
 } = {}): Promise<Pattern[]> {
+  return traced('patterns:extractPatterns', { min: options.min_incidents }, async () => {
 
   const {
     min_incidents = 3,
@@ -97,6 +99,7 @@ export async function extractPatterns(options: {
   }
 
   return patterns;
+  });
 }
 
 /**
@@ -355,6 +358,7 @@ export async function autoExtractPatternIfReady(
     config?: MemoryConfig;
   } = {}
 ): Promise<Pattern | null> {
+  return traced('patterns:autoExtract', { category: newIncident.root_cause.category }, async () => {
 
   const {
     minSimilar = 3,
@@ -417,6 +421,7 @@ export async function autoExtractPatternIfReady(
   }
 
   return pattern;
+  });
 }
 
 /**

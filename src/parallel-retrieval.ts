@@ -20,6 +20,7 @@ import type {
 } from './types';
 import { loadAllIncidents, loadAllPatterns } from './storage';
 import natural from 'natural';
+import { traced } from './logger';
 
 // ============================================================================
 // PARALLEL SEARCH
@@ -40,6 +41,7 @@ export async function parallelSearch(
     memoryConfig?: MemoryConfig;
   }
 ): Promise<ParallelRetrievalResult> {
+  return traced('retrieval:parallelSearch', { query: query.slice(0, 100) }, async () => {
   const startTime = Date.now();
   const threshold = options?.threshold ?? 0.5;
   const maxResults = options?.maxResults ?? 10;
@@ -93,6 +95,7 @@ export async function parallelSearch(
     execution_time_ms: executionTime,
     parallel_speedup: strategiesUsed.length > 0 ? strategiesUsed.length : 1.0,
   };
+  });
 }
 
 // ============================================================================

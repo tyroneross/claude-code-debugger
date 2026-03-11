@@ -11,6 +11,7 @@ import path from 'path';
 import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig, MemoryIndex, IncidentLogEntry, KeywordIndex, VerdictOutcome } from './types';
 import { getMemoryPaths } from './config';
 import { buildIncidentInteractive, calculateQualityScore } from './interactive-verifier';
+import { traced } from './logger';
 
 /**
  * Store an incident in memory
@@ -19,6 +20,7 @@ export async function storeIncident(
   incident: Incident,
   options: StorageOptions & { config?: MemoryConfig; interactive?: boolean } = {}
 ): Promise<{ incident_id: string; file_path: string }> {
+  return traced('storage:storeIncident', { id: incident.incident_id }, async () => {
 
   let finalIncident = incident;
 
@@ -88,6 +90,7 @@ export async function storeIncident(
     incident_id: finalIncident.incident_id,
     file_path: filepath
   };
+  });
 }
 
 /**
@@ -102,6 +105,7 @@ function isValidIncidentId(incident_id: string): boolean {
  * Load an incident by ID
  */
 export async function loadIncident(incident_id: string, config?: MemoryConfig): Promise<Incident | null> {
+  return traced('storage:loadIncident', { id: incident_id }, async () => {
   // Validate incident ID to prevent path traversal
   if (!isValidIncidentId(incident_id)) {
     throw new Error(`Invalid incident ID format: ${incident_id}`);
@@ -120,6 +124,7 @@ export async function loadIncident(incident_id: string, config?: MemoryConfig): 
     }
     throw error;
   }
+  });
 }
 
 /**
@@ -601,6 +606,7 @@ export async function searchIncidentLog(
  * Build or rebuild the memory index from all incidents
  */
 export async function rebuildIndex(config?: MemoryConfig): Promise<MemoryIndex> {
+  return traced('storage:rebuildIndex', undefined, async () => {
   const incidents = await loadAllIncidents(config);
   const paths = getMemoryPaths(config);
 
@@ -689,6 +695,7 @@ export async function rebuildIndex(config?: MemoryConfig): Promise<MemoryIndex> 
   await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
 
   return index;
+  });
 }
 
 /**

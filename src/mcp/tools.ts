@@ -1,7 +1,7 @@
 /**
  * Debugger MCP Tool Definitions
  *
- * 7 tools for debugging memory: search, store, detail, status, list, patterns, outcome.
+ * 8 tools for debugging memory: search, store, detail, status, list, patterns, outcome, read_logs.
  * Each calls existing programmatic APIs from storage.ts and retrieval.ts.
  * Responses are formatted as concise text for LLM consumption.
  */
@@ -17,7 +17,10 @@ import {
   recordOutcome,
 } from '../storage';
 import { checkMemoryWithVerdict } from '../retrieval';
+import { readProjectLogs } from '../log-reader';
 import type { Incident, VerdictOutcome } from '../types';
+import type { LogSource, LogSeverity } from '../log-reader';
+import { traced } from '../logger';
 
 // --- Console safety ---
 
@@ -234,6 +237,56 @@ export const TOOLS = [
       openWorldHint: false,
     },
   },
+  {
+    name: 'read_logs',
+    description:
+      'Read and search log files from the debugger, current project, or a specific path. Auto-discovers common log locations. Supports time range, severity, and keyword filtering.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        source: {
+          type: 'string',
+          enum: ['debugger', 'project', 'path'],
+          description:
+            'Log source: "debugger" for internal operation logs, "project" for auto-discovered project logs, "path" for a specific file',
+        },
+        path: {
+          type: 'string',
+          description: 'File path (required when source is "path")',
+        },
+        since: {
+          type: 'string',
+          description:
+            'Start time filter — ISO 8601 (2024-01-15T10:00:00Z) or relative (1h, 30m, 7d)',
+        },
+        until: {
+          type: 'string',
+          description: 'End time filter — same format as since',
+        },
+        level: {
+          type: 'string',
+          enum: ['debug', 'info', 'warn', 'error', 'fatal'],
+          description: 'Minimum severity level to include',
+        },
+        keyword: {
+          type: 'string',
+          description: 'Search keyword to filter log messages',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum entries to return (default: 50)',
+        },
+      },
+      required: ['source'],
+    },
+    annotations: {
+      title: 'Read Logs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
 ];
 
 // --- Tool handlers ---
@@ -248,19 +301,21 @@ export async function handleToolCall(
     try {
       switch (name) {
         case 'search':
-          return await handleSearch(args);
+          return await traced('mcp:search', args, () => handleSearch(args));
         case 'store':
-          return await handleStore(args);
+          return await traced('mcp:store', args, () => handleStore(args));
         case 'detail':
-          return await handleDetail(args);
+          return await traced('mcp:detail', args, () => handleDetail(args));
         case 'status':
-          return await handleStatus();
+          return await traced('mcp:status', undefined, () => handleStatus());
         case 'list':
-          return await handleList(args);
+          return await traced('mcp:list', args, () => handleList(args));
         case 'patterns':
-          return await handlePatterns(args);
+          return await traced('mcp:patterns', args, () => handlePatterns(args));
         case 'outcome':
-          return await handleOutcome(args);
+          return await traced('mcp:outcome', args, () => handleOutcome(args));
+        case 'read_logs':
+          return await traced('mcp:read_logs', args, () => handleReadLogs(args));
         default:
           return errorResponse(`Unknown tool: ${name}`);
       }
@@ -621,4 +676,52 @@ async function handleOutcome(
   await recordOutcome(outcome);
 
   return textResponse(`Outcome recorded for ${incidentId}: ${result}`);
+}
+
+async function handleReadLogs(
+  args: Record<string, unknown>
+): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+  const source = String(args.source || '') as LogSource;
+  if (!['debugger', 'project', 'path'].includes(source)) {
+    return errorResponse('source must be one of: debugger, project, path');
+  }
+
+  if (source === 'path' && !args.path) {
+    return errorResponse('path is required when source is "path"');
+  }
+
+  const result = await readProjectLogs({
+    source,
+    path: args.path ? String(args.path) : undefined,
+    since: args.since ? String(args.since) : undefined,
+    until: args.until ? String(args.until) : undefined,
+    level: args.level ? String(args.level) as LogSeverity : undefined,
+    keyword: args.keyword ? String(args.keyword) : undefined,
+    limit: typeof args.limit === 'number' ? args.limit : undefined,
+  });
+
+  if (result.entries.length === 0) {
+    const filesInfo = result.files_read.length > 0
+      ? `\nFiles checked: ${result.files_read.join(', ')}`
+      : '\nNo log files found.';
+    return textResponse(`No log entries found matching filters.${filesInfo}`);
+  }
+
+  const lines = [
+    `Log entries (${result.entries.length}${result.truncated ? ` of ${result.total_matched}` : ''}):`,
+    `Files: ${result.files_read.join(', ')}`,
+    '',
+  ];
+
+  for (const entry of result.entries) {
+    const ts = entry.timestamp.slice(0, 19).replace('T', ' ');
+    const lvl = entry.level.toUpperCase().padEnd(5);
+    lines.push(`[${ts}] ${lvl} ${entry.message}`);
+  }
+
+  if (result.truncated) {
+    lines.push(`\n... ${result.total_matched - result.entries.length} more entries (use limit to see more)`);
+  }
+
+  return textResponse(lines.join('\n'));
 }
