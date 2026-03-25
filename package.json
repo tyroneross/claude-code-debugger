@@ -59,7 +59,7 @@
   },
   "homepage": "https://github.com/tyroneross/claude-code-debugger#readme",
   "dependencies": {
-    "commander": "^12.0.0",
+    "commander": "^14.0.3",
     "natural": "^8.1.0",
     "prompts": "^2.4.2"
   },
