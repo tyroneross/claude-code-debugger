@@ -20,9 +20,5 @@
     "traces",
     "parallel-assessment"
   ],
-  "commands": "./commands",
-  "skills": "./skills",
-  "hooks": "./hooks/hooks.json",
-  "agents": "./agents",
-  "mcpServers": "../.mcp.json"
+  "mcpServers": "./.mcp.json"
 }
