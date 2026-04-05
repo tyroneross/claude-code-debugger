@@ -1,4 +1,5 @@
-
+<!-- Plugin: claude-code-debugger · Version: 1.7.0 · Source of truth: local (~/Desktop/git-folder/claude-code-debugger) -->
+<!-- Before any commit, version bump, or major change, read ./VERSIONING.md. Update it on version bumps. -->
 
 ## Debugging Memory
 
