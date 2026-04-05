@@ -34,5 +34,8 @@ yarn.lock
 coverage/
 .nyc_output/
 .npmrc.github.backup
-.claude/memory/sessions/
-.claude/memory/traces/
+
+# Claude Code plugin runtime state
+.claude/memory/
+.claude-code-debugger/
+.bookmark/
