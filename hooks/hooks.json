@@ -1,45 +1,13 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Check debugging memory status using the debugger `status` MCP tool. When debugging issues later, use the debugger `search` MCP tool before investigating."
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "If this edit is fixing a bug, use the debugger `search` MCP tool first to check for similar past incidents.\n\nThis is a suggestion — proceed with the edit.\n\nResponse: {\"ok\": true}"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "If this command was debugging-related, remember to document the fix using the debugger `store` MCP tool.\n\nResponse: {\"ok\": true}"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "If debugging work was done this session, use the debugger `store` MCP tool to record any resolved incidents."
+            "type": "command",
+            "command": "npx @tyroneross/claude-code-debugger mine --days 1 --store 2>/dev/null || true",
+            "timeout": 30000
           }
         ]
       }
