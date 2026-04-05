@@ -1,6 +1,6 @@
 {
   "name": "@tyroneross/claude-code-debugger",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Debugging memory system with tiered storage, verdict-first responses, context compression, and parallel assessment - never solve the same bug twice",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

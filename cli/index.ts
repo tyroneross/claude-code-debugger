@@ -21,6 +21,7 @@ import { loadIncident, loadPattern, recordOutcome, rebuildKeywordIndex } from '.
 import { generateSessionContext, checkFileContext } from '../src/context-engine';
 import { uninstall } from '../src/setup/uninstall';
 import { runInit } from './init';
+import { addLesson, listLessons, type Lesson } from '../src/lessons';
 
 const program = new Command();
 
@@ -747,6 +748,92 @@ program
     // Suggest npm uninstall
     console.log('  \x1b[2mTo also remove the npm package:\x1b[0m');
     console.log('  \x1b[2m  npm uninstall @tyroneross/claude-code-debugger\x1b[0m\n');
+  });
+
+// ============================================================================
+// Lesson commands
+// ============================================================================
+//
+// Proactive pattern library — complements incident memory (reactive search)
+// with per-repo LESSONS-LEARNED.md files meant to be read top-to-bottom during
+// design/code review. See src/lessons.ts for full semantics.
+
+const lessonCmd = program
+  .command('lesson')
+  .description('Manage per-repo LESSONS-LEARNED.md pattern library');
+
+lessonCmd
+  .command('add')
+  .description('Append a new lesson to <repo>/LESSONS-LEARNED.md')
+  .requiredOption('--repo <path>', 'target repository (absolute path or ~/)')
+  .requiredOption('--title <text>', 'short descriptive title')
+  .requiredOption('--category <tag>', 'short grouping tag (e.g. plugin-manifest, hooks, react-hooks)')
+  .requiredOption('--pattern <text>', 'description of the generalized mistake or anti-pattern')
+  .option('--date <yyyy-mm-dd>', 'date of the lesson (default: today)')
+  .option('--plugins <list>', 'comma-separated list of affected plugins/packages')
+  .option('--incident <id>', 'linked claude-code-debugger incident ID')
+  .option('--source <url-or-path>', 'authoritative source confirming the rule')
+  .option('--correct <text>', 'example of the correct approach')
+  .option('--incorrect <text>', 'example of the anti-pattern')
+  .option('--detect <cmd>', 'grep/audit command to detect the pattern')
+  .option('--verify <text>', 'how to confirm the fix worked')
+  .option('--notes <text>', 'additional context')
+  .action((opts) => {
+    try {
+      const lesson: Lesson = {
+        title: opts.title,
+        date: opts.date,
+        category: opts.category,
+        pattern: opts.pattern,
+        pluginsAffected: opts.plugins ? String(opts.plugins).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+        linkedIncident: opts.incident,
+        authoritativeSource: opts.source,
+        correct: opts.correct,
+        incorrect: opts.incorrect,
+        howToDetect: opts.detect,
+        verification: opts.verify,
+        notes: opts.notes,
+      };
+      const written = addLesson(opts.repo, lesson);
+      console.log(`✅ Lesson added: ${written}`);
+    } catch (err: any) {
+      console.error(`❌ ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+lessonCmd
+  .command('list')
+  .description('List lessons in <repo>/LESSONS-LEARNED.md')
+  .requiredOption('--repo <path>', 'target repository (absolute path or ~/)')
+  .option('--category <tag>', 'filter by category')
+  .option('--json', 'emit machine-readable JSON')
+  .action((opts) => {
+    try {
+      const lessons = listLessons(opts.repo);
+      const filtered = opts.category
+        ? lessons.filter((l) => l.category === opts.category)
+        : lessons;
+
+      if (opts.json) {
+        console.log(JSON.stringify(filtered, null, 2));
+        return;
+      }
+
+      if (filtered.length === 0) {
+        console.log('No lessons found.');
+        return;
+      }
+
+      console.log(`\n📚 ${filtered.length} lesson(s) in ${opts.repo}/LESSONS-LEARNED.md\n`);
+      for (const l of filtered) {
+        console.log(`  ${l.date}  [${l.category || '?'}]  ${l.title}`);
+      }
+      console.log('');
+    } catch (err: any) {
+      console.error(`❌ ${err.message}`);
+      process.exit(1);
+    }
   });
 
 program.parse();

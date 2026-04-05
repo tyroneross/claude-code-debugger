@@ -2,12 +2,20 @@
 
 ## Current
 
-- **Version:** 1.7.0
+- **Version:** 1.8.0
 - **Source of truth:** Local dev (`~/Desktop/git-folder/claude-code-debugger`)
 - **Also available at:**
   - GitHub: https://github.com/tyroneross/claude-code-debugger
   - npm: `@tyroneross/claude-code-debugger`
 - **Claude Code cache mirror:** `~/.claude/plugins/cache/RossLabs-claude-plugins/claude-code-debugger/1.7.0/`
+
+## Key changes in 1.8.0
+
+- **New `lesson` CLI subcommand** — `debugger lesson add` and `debugger lesson list` manage per-repo `LESSONS-LEARNED.md` markdown files
+- Proactive pattern library to complement reactive incident search. Incidents are per-occurrence and searchable by symptom; lessons are per-pattern and read in full during design/code review
+- Plain markdown output — no hidden database, hand-editable, lives in whatever repo the lesson belongs to
+- New module `src/lessons.ts` with `addLesson()`, `renderLesson()`, `listLessons()` — reusable as a programmatic API
+- No MCP tool wrapper (intentional — Bash tool is more reliable than MCP for CLI invocation, and the lesson module is a 20-line wrapper away if MCP is ever wanted)
 
 ## Key changes in 1.7.0
 
@@ -43,5 +51,6 @@ When "latest" is ambiguous, trust **local dev** first, then cross-check the regi
 
 ## Version history
 
-- **1.7.0** (current): Tiered storage, verdict-first retrieval, compound IDs, auto-archival, context compression. Prompt hooks stripped 2026-04-04 (hint script removed; Stop `mine --days 1 --store` command retained).
+- **1.8.0** (2026-04-05): New `lesson` CLI subcommand for per-repo LESSONS-LEARNED.md management. Complements incident memory with proactive pattern library.
+- **1.7.0** (prior): Tiered storage, verdict-first retrieval, compound IDs, auto-archival, context compression. Prompt hooks stripped 2026-04-04 (hint script removed; Stop `mine --days 1 --store` command retained).
 - **1.3.0** (prior): Single-file incident store, basic retrieval. Cached directory deleted 2026-04-04 during drift cleanup.
