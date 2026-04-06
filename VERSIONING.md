@@ -7,7 +7,7 @@
 - **Also available at:**
   - GitHub: https://github.com/tyroneross/claude-code-debugger
   - npm: `@tyroneross/claude-code-debugger`
-- **Claude Code cache mirror:** `~/.claude/plugins/cache/RossLabs-claude-plugins/claude-code-debugger/1.7.0/`
+- **Claude Code cache mirror:** `~/.claude/plugins/cache/RossLabs-AI-Toolkit/claude-code-debugger/1.7.0/`
 
 ## Key changes in 1.8.0
 
@@ -33,7 +33,7 @@
 | **Authoritative** | `~/Desktop/git-folder/claude-code-debugger/.claude-plugin/plugin.json` | Local dev — canonical, always newest |
 | GitHub | github.com/tyroneross/claude-code-debugger | Public mirror, tracks local |
 | npm | `@tyroneross/claude-code-debugger` | Published releases (may lag) |
-| Cache mirror | `~/.claude/plugins/cache/RossLabs-claude-plugins/claude-code-debugger/<version>/` | What Claude Code actually loads at runtime — cross-check against registry |
+| Cache mirror | `~/.claude/plugins/cache/RossLabs-AI-Toolkit/claude-code-debugger/<version>/` | What Claude Code actually loads at runtime — cross-check against registry |
 
 When "latest" is ambiguous, trust **local dev** first, then cross-check the registry at `~/.claude/plugins/installed_plugins.json`.
 
@@ -42,7 +42,7 @@ When "latest" is ambiguous, trust **local dev** first, then cross-check the regi
 1. Bump `version` in `.claude-plugin/plugin.json`
 2. Update the version stamp in `CLAUDE.md` (line 1 HTML comment)
 3. Update this file's `Current` section + add an entry to `Version history` below
-4. Delete older cache entries: `rm -rf ~/.claude/plugins/cache/RossLabs-claude-plugins/claude-code-debugger/<old-version>/`
+4. Delete older cache entries: `rm -rf ~/.claude/plugins/cache/RossLabs-AI-Toolkit/claude-code-debugger/<old-version>/`
 5. Back up, then update `~/.claude/plugins/installed_plugins.json` → `installPath` + `version` for every entry of this plugin
 6. Run `/reload-plugins` in Claude Code
 7. Commit `plugin.json`, `CLAUDE.md`, `VERSIONING.md` together in a single commit

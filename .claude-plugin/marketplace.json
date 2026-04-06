@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "RossLabs-claude-plugins",
+  "name": "RossLabs-AI-Toolkit",
   "owner": {
     "name": "Tyrone Ross",
     "email": "tyrone@rosslabs.ai"
