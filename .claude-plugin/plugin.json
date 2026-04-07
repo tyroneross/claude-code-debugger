@@ -18,7 +18,10 @@
     "developer-tools",
     "opentelemetry",
     "traces",
-    "parallel-assessment"
+    "parallel-assessment",
+    "root-cause-analysis",
+    "iterative-debugging",
+    "causal-tree-analysis"
   ],
   "mcpServers": "./.mcp.json"
 }

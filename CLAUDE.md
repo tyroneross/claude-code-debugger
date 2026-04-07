@@ -19,6 +19,25 @@ This project uses @tyroneross/claude-code-debugger for debugging memory.
 
 The system learns from your debugging sessions automatically.
 
+## Debug Loop — Iterative Root Cause Debugging
+
+For non-trivial bugs, the debug-loop skill provides deep investigation with iteration.
+
+**Workflow**: Investigate (causal tree) → Hypothesize → Fix → Verify → Score → Critique → Report (up to 5 iterations)
+
+**Key agents**:
+- `root-cause-investigator` — builds causal trees (branching, not linear), traces multiple potential causes, flags when to research externally
+- `fix-critique` — pressure-tests fixes before declaring resolved (root cause vs symptom, regression risk, evidence gaps)
+
+**Commands**:
+- `/debug-loop "symptom"` — Enter the iterative debugging loop explicitly
+
+**Auto-activation**: The `debugging-memory` skill escalates to `debug-loop` when verdict is `LIKELY_MATCH`, `WEAK_SIGNAL`, or `NO_MATCH` — any verdict other than `KNOWN_FIX`.
+
+**State storage**: `.claude-code-debugger/debug-loop/` — `state.json` (iteration tracking), `scorecard.md` (pass/fail per criterion)
+
+**Transparency**: Every report uses ✅ Verified / ⚠️ Assumed / ❓ Unknown markers. No overclaiming.
+
 ## v1.5.0 Storage Architecture
 
 **Tiered storage** (new):
@@ -56,7 +75,8 @@ This project is both an npm package and a Claude Code plugin.
 **Plugin structure:**
 - `.claude-plugin/plugin.json` - Plugin manifest
 - `commands/` - Slash commands (single source of truth)
-- `skills/debugging-memory/` - Auto-activating debugging skill
+- `skills/debugging-memory/` - Auto-activating debugging skill (escalates to debug-loop for complex issues)
+- `skills/debug-loop/` - Iterative root cause debugging skill (causal tree, critique, scorecard)
 - `hooks/hooks.json` - Session stop hook for auto-mining
 
 **Syncing:**

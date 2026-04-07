@@ -40,21 +40,25 @@ claude-code-debugger/
 │   └── ...
 ├── dist/                       # Compiled output (do not edit)
 │   └── src/mcp/server.js       # MCP server entry point (compiled)
-├── agents/                     # 5 Claude agent definitions (Markdown)
+├── agents/                     # 7 Claude agent definitions (Markdown)
 │   ├── assessment-orchestrator.md
 │   ├── api-assessor.md
 │   ├── database-assessor.md
+│   ├── fix-critique.md
 │   ├── frontend-assessor.md
-│   └── performance-assessor.md
-├── commands/                   # 7 slash commands (Markdown, single source of truth)
+│   ├── performance-assessor.md
+│   └── root-cause-investigator.md
+├── commands/                   # 8 slash commands (Markdown, single source of truth)
 │   ├── assess.md
+│   ├── debug-loop.md
 │   ├── debugger.md
 │   ├── debugger-detail.md
 │   ├── debugger-scan.md
 │   ├── debugger-status.md
 │   ├── feedback.md
 │   └── update.md
-├── skills/                     # 2 Claude Code skills
+├── skills/                     # 3 Claude Code skills
+│   ├── debug-loop/             # Iterative root cause debugging (causal tree, critique, scorecard)
 │   ├── debugging-memory/       # Auto-activates on bug symptoms
 │   └── logging-tracer/         # Trace log reading and analysis
 ├── hooks/
@@ -146,13 +150,14 @@ Use `archiveOldIncidents({ dryRun: true })` from `src/storage.ts` to preview wha
 
 ---
 
-## Commands (7 total)
+## Commands (8 total)
 
 All command definitions live in `commands/*.md`. This is the single source of truth — the plugin system reads them directly, and `postinstall` copies them to `.claude/commands/`. Edit only the source files, never the copies.
 
 | Command | Purpose |
 |---|---|
 | `/assess <symptom>` | Parallel domain assessment — spawns multiple assessor agents simultaneously |
+| `/debug-loop <symptom>` | Deep iterative debugging — causal tree root cause investigation, fix-verify-score-critique loop (up to 5x) |
 | `/debugger <symptom>` | Search past bugs by symptom; show recent if no argument |
 | `/debugger-detail <id>` | Load full incident or pattern by ID (INC_* or PTN_*) |
 | `/debugger-scan` | Scan recent Claude sessions for debugging work, mine and store |
@@ -162,27 +167,32 @@ All command definitions live in `commands/*.md`. This is the single source of tr
 
 ---
 
-## Agents (5 total)
+## Agents (7 total)
 
-Defined in `agents/*.md`. Each is a specialized domain diagnostician invoked in parallel by `/assess`.
+Defined in `agents/*.md`. Domain assessors are invoked in parallel by `/assess`. Investigation and critique agents are used by the debug-loop skill.
 
 | Agent | File | Domain |
 |---|---|---|
 | `assessment-orchestrator` | `agents/assessment-orchestrator.md` | Coordinates parallel assessment, aggregates results, produces ranked action plan |
 | `api-assessor` | `agents/api-assessor.md` | Endpoints, auth, middleware, HTTP errors |
 | `database-assessor` | `agents/database-assessor.md` | Queries, schema, migrations, connection issues |
+| `fix-critique` | `agents/fix-critique.md` | Pressure-tests proposed fixes — challenges root cause vs symptom, regression risk, evidence gaps |
 | `frontend-assessor` | `agents/frontend-assessor.md` | React, hooks, rendering, hydration, state |
 | `performance-assessor` | `agents/performance-assessor.md` | Latency, memory leaks, CPU, bottlenecks |
+| `root-cause-investigator` | `agents/root-cause-investigator.md` | Deep causal analysis via causal tree — explores multiple branches to find true root cause |
 
-The orchestrator uses domain keyword detection to decide which assessors to spawn. All spawned assessors run simultaneously, not sequentially. Output is a ranked JSON report with confidence scores per domain.
+The assessment orchestrator uses domain keyword detection to decide which assessors to spawn. All spawned assessors run simultaneously, not sequentially.
+
+The root-cause-investigator and fix-critique agents are used by the `debug-loop` skill for iterative debugging. The investigator builds causal trees (branching exploration, not linear chains); the critique agent challenges fixes before they're declared done.
 
 ---
 
-## Skills (2 total)
+## Skills (3 total)
 
 | Skill | Directory | Behavior |
 |---|---|---|
-| `debugging-memory` | `skills/debugging-memory/` | Auto-activates when bug symptoms are detected; injects relevant memory context |
+| `debug-loop` | `skills/debug-loop/` | Iterative root cause debugging: causal tree investigation, hypothesis testing, fix-verify-score-critique loop (up to 5x), transparent reporting |
+| `debugging-memory` | `skills/debugging-memory/` | Auto-activates when bug symptoms are detected; injects relevant memory context. Escalates to debug-loop for non-trivial issues |
 | `logging-tracer` | `skills/logging-tracer/` | Reads and analyzes project log files for error traces |
 
 ---

@@ -47,7 +47,28 @@ This ensures users know the debugger is active and working.
 
 ## Structured Debugging Process
 
-When no past solution applies, follow this systematic approach:
+When no past solution applies, follow this systematic approach.
+
+### Deep Investigation Mode
+
+For non-trivial issues, load the `debug-loop` skill instead of the basic steps below. The trigger is the **verdict category** from memory search, not a numeric confidence score:
+
+- **`KNOWN_FIX`** → apply the fix directly, skip the loop
+- **`LIKELY_MATCH`** → enter debug loop (past incidents exist but need verification against current context)
+- **`WEAK_SIGNAL`** → enter debug loop (loosely related, needs fresh investigation)
+- **`NO_MATCH`** → enter debug loop (no prior knowledge, full investigation needed)
+
+Also enter the debug loop when:
+- The initial diagnosis feels superficial (treating a symptom as the cause)
+- A previous fix attempt didn't hold — the bug came back
+- The user explicitly asks for root cause analysis or deep investigation
+- Multiple symptoms suggest a shared underlying cause
+
+The debug loop provides: causal tree investigation, hypothesis testing, iterative fix-verify-score cycles (up to 5x), fix critique before declaring done, and transparent ✅/⚠️/❓ reporting.
+
+### Basic Steps (for simple, clear-cut issues)
+
+For straightforward bugs where the cause is immediately apparent, use these steps directly:
 
 ### 1. Reproduce
 
