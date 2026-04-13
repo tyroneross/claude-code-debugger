@@ -81,7 +81,29 @@ For each branch you pursue:
 
 4. **If confirmed, recurse**: This branch's cause becomes a new node — repeat Step 2 (identify sub-causes) until you reach an actionable root cause.
 
-### Step 5: Convergence — When to Stop
+### Step 5: Environment Scan
+
+Code-level investigation misses environment-level causes. Before converging, check for environmental factors that could produce the symptom:
+
+| Check | How | What It Catches |
+|-------|-----|-----------------|
+| Duplicate bundles/binaries | `find` for same app name or bundle ID in build dirs, release dirs, /Applications | Launch Services resolving to wrong binary |
+| Port conflicts | `lsof -i :PORT` | Another process holding the port the app needs |
+| Stale processes | `ps aux \| grep APP_NAME` | Old instance still running, blocking resources |
+| Sandbox container state | Check `~/Library/Containers/BUNDLE_ID/` for stale data | Sandbox caching old DB, config, or binary |
+| File system conflicts | Check for symlinks, aliases, or .app bundles in unexpected locations | Finder/Spotlight resolving to wrong target |
+| Code signing mismatch | `codesign -dvv APP_PATH` | Ad-hoc vs team-signed affecting Keychain, entitlements |
+| Entitlement gaps | `codesign -d --entitlements - APP_PATH` | Missing entitlements for sandbox, Keychain, network |
+
+**When to run**: Always run at least the duplicate-bundles and stale-processes checks. Run all checks when:
+- "It works in Xcode but not when installed"
+- "The fix is in the code but the behavior hasn't changed"
+- "It worked before and I didn't change anything"
+- Errors reference system resources (Keychain, ports, permissions, Launch Services)
+
+Add environment findings as branches in the causal tree with `evidence_type: "environment_scan"`.
+
+### Step 6: Convergence — When to Stop
 
 Stop investigating a branch when you reach one of:
 
