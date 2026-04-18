@@ -42,7 +42,7 @@ function sendError(id: string | number, code: number, message: string) {
 
 const SERVER_INFO = {
   name: 'debugger',
-  version: '1.7.0',
+  version: '1.8.0',
 };
 
 const CAPABILITIES = {

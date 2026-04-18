@@ -1,21 +1,31 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "RossLabs-AI-Toolkit",
-  "owner": {
+  "name": "claude-code-debugger",
+  "version": "1.8.0",
+  "description": "Debugging memory — learn from past bugs with verdict-based retrieval, pattern extraction, and parallel domain assessment. Never solve the same bug twice.",
+  "repository": "https://github.com/tyroneross/claude-code-debugger",
+  "homepage": "https://github.com/tyroneross/claude-code-debugger",
+  "license": "MIT",
+  "author": {
     "name": "Tyrone Ross",
-    "email": "tyrone@rosslabs.ai"
+    "email": "tyrone@rosslabs.ai",
+    "url": "https://github.com/tyroneross"
   },
-  "metadata": {
-    "description": "Developer productivity plugins by RossLabs"
-  },
-  "plugins": [
-    {
-      "name": "claude-code-debugger",
-      "description": "Debugging memory system - never solve the same bug twice",
-      "category": "development",
-      "source": "./",
-      "homepage": "https://github.com/tyroneross/claude-code-debugger",
-      "tags": ["debugging", "memory", "incident-tracking", "patterns"]
-    }
-  ]
+  "keywords": [
+    "debugging",
+    "memory",
+    "incident-tracking",
+    "pattern-recognition",
+    "developer-tools",
+    "opentelemetry",
+    "traces",
+    "parallel-assessment",
+    "root-cause-analysis",
+    "iterative-debugging",
+    "causal-tree-analysis"
+  ],
+  "install": {
+    "marketplace": "/plugin marketplace add tyroneross/claude-code-debugger",
+    "plugin": "/plugin install claude-code-debugger@claude-code-debugger"
+  }
 }
