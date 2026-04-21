@@ -1,0 +1,39 @@
+{
+  "name": "claude-code-debugger",
+  "version": "1.8.0",
+  "description": "Debugging memory \u2014 learn from past bugs with verdict-based retrieval, pattern extraction, and parallel domain assessment. Never solve the same bug twice.",
+  "author": {
+    "name": "Tyrone Ross",
+    "email": "tyrone@rosslabs.ai",
+    "url": "https://github.com/tyroneross"
+  },
+  "homepage": "https://github.com/tyroneross/claude-code-debugger",
+  "repository": "https://github.com/tyroneross/claude-code-debugger",
+  "license": "MIT",
+  "keywords": [
+    "debugging",
+    "memory",
+    "incident-tracking",
+    "pattern-recognition",
+    "developer-tools",
+    "opentelemetry",
+    "traces",
+    "parallel-assessment",
+    "root-cause-analysis",
+    "iterative-debugging",
+    "causal-tree-analysis"
+  ],
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Debug Memory",
+    "shortDescription": "Debugging memory \u2014 learn from past bugs with verdict-based retrieval, pattern extraction, and parallel domain assessment. Never solve the same bug twice.",
+    "longDescription": "Debugging memory \u2014 learn from past bugs with verdict-based retrieval, pattern extraction, and parallel domain assessment. Never solve the same bug twice.",
+    "developerName": "Ross Labs",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}
