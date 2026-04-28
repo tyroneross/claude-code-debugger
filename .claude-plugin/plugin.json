@@ -1,7 +1,7 @@
 {
   "name": "claude-code-debugger",
   "version": "1.8.1",
-  "description": "Debugging memory \u2014 learn from past bugs with verdict-based retrieval, pattern extraction, and parallel domain assessment. Never solve the same bug twice.",
+  "description": "Debug with memory of past bugs \u2014 pattern extraction and parallel domain assessment",
   "author": {
     "name": "Tyrone Ross",
     "email": "tyrone@rosslabs.ai",

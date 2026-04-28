@@ -1,6 +1,6 @@
 ---
 name: debug-loop
-description: Use when debugging requires deep investigation beyond memory lookup — when the debugging-memory skill returns LIKELY_MATCH, WEAK_SIGNAL, or NO_MATCH, when a fix didn't hold, when the user explicitly asks for root cause analysis, deep investigation, or iterative debugging, or when you suspect the initial diagnosis is superficial. Not for known fixes or trivial issues.
+description: Use for deep iterative debugging when memory lookup returns LIKELY_MATCH/WEAK_SIGNAL/NO_MATCH, a fix didn't hold, or the user asks for root cause analysis. Not for known fixes or trivial issues.
 version: 1.1.0
 user-invocable: false
 ---

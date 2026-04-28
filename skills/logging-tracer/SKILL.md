@@ -1,6 +1,6 @@
 ---
 name: logging-tracer
-description: This skill activates when the user asks to "add logging", "add tracing", "improve observability", "no logs", "can't see what's happening", "silent failure", "need visibility", "add instrumentation", "OpenTelemetry", "structured logging", "Jaeger", "set up monitoring", "add error tracking", or describes any lack of runtime visibility in their application. Generates stack-appropriate structured logging code with zero-dependency defaults and optional OTel integration.
+description: Use when the user asks to "add logging", "add tracing", "improve observability", "OpenTelemetry", "structured logging", or reports silent failures or no runtime visibility. Generates stack-appropriate logging with optional OTel.
 version: 1.0.0
 user-invocable: false
 ---
