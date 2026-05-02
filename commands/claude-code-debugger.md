@@ -20,7 +20,7 @@ Route this request to the appropriate claude-code-debugger subcommand or skill b
 ## Available subcommands
 
 - **`/claude-code-debugger:assess`** — Run parallel domain assessment for complex debugging symptoms
-- **`/claude-code-debugger:debug-loop`** — Deep iterative debugging: investigate root cause with causal tree analysis, fix,
+- **`/claude-code-debugger:debugger-agent`** — Deep iterative debugging: investigate root cause with causal tree analysis, fix,
 - **`/claude-code-debugger:debugger-detail`**
 - **`/claude-code-debugger:debugger-scan`** — Scan recent sessions for debugging incidents
 - **`/claude-code-debugger:debugger-status`** — Show debugging memory statistics

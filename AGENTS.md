@@ -157,7 +157,7 @@ All command definitions live in `commands/*.md`. This is the single source of tr
 | Command | Purpose |
 |---|---|
 | `/assess <symptom>` | Parallel domain assessment — spawns multiple assessor agents simultaneously |
-| `/debug-loop <symptom>` | Deep iterative debugging — causal tree root cause investigation, fix-verify-score-critique loop (up to 5x) |
+| `/debugger-agent <symptom>` | Deep iterative debugging — causal tree root cause investigation, fix-verify-score-critique loop (up to 5x) |
 | `/debugger <symptom>` | Search past bugs by symptom; show recent if no argument |
 | `/debugger-detail <id>` | Load full incident or pattern by ID (INC_* or PTN_*) |
 | `/debugger-scan` | Scan recent Claude sessions for debugging work, mine and store |
