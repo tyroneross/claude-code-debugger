@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/tyroneross/claude-code-debugger",
   "repository": "https://github.com/tyroneross/claude-code-debugger",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "debugging",
     "memory",
