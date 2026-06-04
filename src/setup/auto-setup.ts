@@ -62,7 +62,7 @@ async function autoSetup(): Promise<void> {
   const CYAN = '\x1b[36m';
   const RESET = '\x1b[0m';
 
-  console.log(`\n  ${GREEN}Claude Code Debugger${RESET} — Setting up debugging memory\n`);
+  console.log(`\n  ${GREEN}Coding Debugger${RESET} — Setting up debugging memory\n`);
 
   const steps: string[] = [];
 
@@ -111,8 +111,8 @@ async function autoSetup(): Promise<void> {
     console.log(`  ${DIM}  - Next time a similar bug appears, Claude checks memory first${RESET}`);
     console.log(`  ${DIM}  - Use${RESET} ${CYAN}/debugger "symptom"${RESET} ${DIM}to search manually${RESET}`);
     console.log();
-    console.log(`  ${DIM}Run${RESET} claude-code-debugger init ${DIM}for interactive setup${RESET}`);
-    console.log(`  ${DIM}Run${RESET} claude-code-debugger uninstall ${DIM}to remove${RESET}`);
+    console.log(`  ${DIM}Run${RESET} coding-debugger init ${DIM}for interactive setup${RESET}`);
+    console.log(`  ${DIM}Run${RESET} coding-debugger uninstall ${DIM}to remove${RESET}`);
     console.log();
 
   } catch (error) {

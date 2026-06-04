@@ -10,7 +10,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig, MemoryIndex, IncidentLogEntry, KeywordIndex, VerdictOutcome } from './types';
 import { getMemoryPaths } from './config';
-import { buildIncidentInteractive, calculateQualityScore } from './interactive-verifier';
+import { calculateQualityScore } from './quality';
 import { traced } from './logger';
 
 /**
@@ -26,6 +26,7 @@ export async function storeIncident(
 
   // Use interactive mode if requested
   if (options.interactive) {
+    const { buildIncidentInteractive } = await import('./interactive-verifier');
     finalIncident = await buildIncidentInteractive(incident);
   }
 

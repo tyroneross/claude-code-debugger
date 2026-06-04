@@ -14,7 +14,7 @@ const STATIC_SECTION = `
 
 ## Debugging Memory
 
-This project uses @tyroneross/claude-code-debugger for debugging memory.
+This project uses Coding Debugger (@tyroneross/claude-code-debugger) for debugging memory.
 
 **Automatic behavior:**
 - Past debugging sessions are stored and indexed

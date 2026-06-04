@@ -1,9 +1,9 @@
-<!-- Plugin: claude-code-debugger · Version: 1.8.0 · Source of truth: local (~/Desktop/git-folder/claude-code-debugger) -->
+<!-- Plugin: coding-debugger · Version: 1.9.0 · Source of truth: local (~/dev/git-folder/claude-code-debugger) -->
 <!-- Before any commit, version bump, or major change, read ./VERSIONING.md. Update it on version bumps. -->
 
 ## Debugging Memory
 
-This project uses @tyroneross/claude-code-debugger for debugging memory.
+This project uses Coding Debugger for debugging memory. The npm package remains `@tyroneross/claude-code-debugger` for compatibility.
 
 **Automatic behavior:**
 - Past debugging sessions are stored and indexed
@@ -12,6 +12,7 @@ This project uses @tyroneross/claude-code-debugger for debugging memory.
 - Session stop hook mines audit trail for missed incidents
 
 **Commands:**
+- `coding-debugger debug "symptom"` - CLI alias for memory search
 - `/debugger "symptom"` - Search past bugs for similar issues
 - `/debugger` - Show recent bugs, pick one to debug
 - `/debugger-status` - Show memory statistics
@@ -30,11 +31,11 @@ For non-trivial bugs, the debug-loop skill provides deep investigation with iter
 - `fix-critique` — pressure-tests fixes before declaring resolved (root cause vs symptom, regression risk, evidence gaps)
 
 **Commands**:
-- `/debug-loop "symptom"` — Enter the iterative debugging loop explicitly
+- `/debugger-agent "symptom"` — Enter the iterative debugging loop explicitly
 
 **Auto-activation**: The `debugging-memory` skill escalates to `debug-loop` when verdict is `LIKELY_MATCH`, `WEAK_SIGNAL`, or `NO_MATCH` — any verdict other than `KNOWN_FIX`.
 
-**State storage**: `.claude-code-debugger/debug-loop/` — `state.json` (iteration tracking), `scorecard.md` (pass/fail per criterion)
+**State storage**: `.claude-code-debugger/debug-loop/` — `state.json` (iteration tracking), `scorecard.md` (pass/fail per criterion). Storage path is kept stable for backward compatibility.
 
 **Transparency**: Every report uses ✅ Verified / ⚠️ Assumed / ❓ Unknown markers. No overclaiming.
 

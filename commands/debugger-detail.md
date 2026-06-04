@@ -1,3 +1,9 @@
+---
+name: debugger-detail
+description: Load full details for a specific Coding Debugger incident or pattern ID.
+argument-hint: "<ID>"
+---
+
 # Debugger Detail
 
 Load full details for a specific incident or pattern from debugging memory.

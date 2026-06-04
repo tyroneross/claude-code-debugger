@@ -19,7 +19,7 @@ import type {
   MemoryConfig,
 } from './types';
 import { loadAllIncidents, loadAllPatterns } from './storage';
-import natural from 'natural';
+import { jaroWinklerDistance } from './string-similarity';
 import { traced } from './logger';
 
 // ============================================================================
@@ -178,7 +178,7 @@ async function executeFuzzyStrategy(
   for (const incident of incidents) {
     if (!incident.symptom || typeof incident.symptom !== 'string') continue;
 
-    const symptomScore = natural.JaroWinklerDistance(
+    const symptomScore = jaroWinklerDistance(
       queryLower,
       incident.symptom.toLowerCase()
     );
@@ -186,7 +186,7 @@ async function executeFuzzyStrategy(
     // Also check root cause description
     const rootCauseDesc = incident.root_cause?.description ?? '';
     const rootCauseScore = rootCauseDesc
-      ? natural.JaroWinklerDistance(queryLower, rootCauseDesc.toLowerCase())
+      ? jaroWinklerDistance(queryLower, rootCauseDesc.toLowerCase())
       : 0;
 
     const maxScore = Math.max(symptomScore, rootCauseScore);

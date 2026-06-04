@@ -1,8 +1,8 @@
-# Claude Code Debugger
+# Coding Debugger
 
 > Never solve the same bug twice
 
-A debugging memory system for Claude Code that automatically learns from past incidents and suggests solutions based on similar problems you've already solved.
+AI-assisted debugging memory for coding agents. It learns from past incidents, classifies similar failures, and supports deep root-cause workflows for hard fixes.
 
 ## Features
 
@@ -40,7 +40,7 @@ A debugging memory system for Claude Code that automatically learns from past in
 /plugin marketplace add tyroneross/claude-code-debugger
 
 # Install the plugin
-/plugin install claude-code-debugger@claude-code-debugger
+/plugin install coding-debugger@claude-code-debugger
 ```
 
 ### Via npm (includes CLI and automatic slash command setup)
@@ -68,6 +68,8 @@ pnpm add -g @tyroneross/claude-code-debugger
 # yarn
 yarn global add @tyroneross/claude-code-debugger
 ```
+
+The package name stays `@tyroneross/claude-code-debugger` for compatibility. The preferred CLI binary is `coding-debugger`; `claude-code-debugger` remains as an alias.
 
 ### Troubleshooting Installation
 
@@ -826,4 +828,3 @@ Primary Codex surface:
 - MCP config from `./.mcp.json` when present
 
 Install the package from this package root using your current Codex plugin install flow. The Codex package is additive only: Claude-specific hooks, slash commands, and agent wiring remain unchanged for Claude Code.
-

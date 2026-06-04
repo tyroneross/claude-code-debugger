@@ -7,7 +7,7 @@ user-invocable: false
 
 # Debugging Memory Workflow
 
-This skill integrates the claude-code-debugger memory system into debugging workflows. The core principle: **never solve the same bug twice**.
+This skill integrates Coding Debugger memory into debugging workflows. The core principle: **never solve the same bug twice**.
 
 ## Memory-First Approach
 

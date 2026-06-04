@@ -3,7 +3,7 @@ description: "Submit feedback or report issues"
 allowed-tools: Bash
 ---
 
-Open the GitHub issues page for the claude-code-debugger project:
+Open the GitHub issues page for the Coding Debugger project:
 
 ```bash
 open "https://github.com/tyroneross/claude-code-debugger/issues"

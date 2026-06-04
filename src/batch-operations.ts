@@ -19,7 +19,7 @@ import {
 } from './storage';
 import { extractPatterns } from './pattern-extractor';
 import { getMemoryPaths } from './config';
-import { calculateQualityScore } from './interactive-verifier';
+import { calculateQualityScore } from './quality';
 
 /**
  * Review and complete incomplete incidents interactively

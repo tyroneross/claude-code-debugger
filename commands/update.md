@@ -1,5 +1,5 @@
 ---
-description: "Update claude-code-debugger to the latest version"
+description: "Update Coding Debugger to the latest version"
 allowed-tools: Bash, Read, Write
 ---
 
@@ -10,7 +10,7 @@ Update the debugging memory system using npx.
 ```bash
 CURRENT=$(npx @tyroneross/claude-code-debugger --version 2>/dev/null || echo "not installed")
 LATEST=$(npm view @tyroneross/claude-code-debugger version 2>/dev/null || echo "unknown")
-echo "Current: $CURRENT"
+echo "Coding Debugger current: $CURRENT"
 echo "Latest:  $LATEST"
 ```
 

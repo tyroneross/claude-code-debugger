@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Debugger MCP Server
+ * Coding Debugger MCP Server
  *
  * JSON-RPC 2.0 over stdio (MCP protocol).
  * Exposes debugging memory tools: search, store, detail, status, list, patterns, outcome, read_logs.
@@ -41,8 +41,8 @@ function sendError(id: string | number, code: number, message: string) {
 // --- MCP Protocol ---
 
 const SERVER_INFO = {
-  name: 'debugger',
-  version: '1.8.0',
+  name: 'coding-debugger',
+  version: '1.9.0',
 };
 
 const CAPABILITIES = {

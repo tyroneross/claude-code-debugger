@@ -1,13 +1,23 @@
-# claude-code-debugger — Versioning & Source of Truth
+# Coding Debugger — Versioning & Source of Truth
 
 ## Current
 
-- **Version:** 1.8.0
-- **Source of truth:** Local dev (`~/Desktop/git-folder/claude-code-debugger`)
+- **Version:** 1.9.0
+- **Source of truth:** Local dev (`~/dev/git-folder/claude-code-debugger`)
 - **Also available at:**
   - GitHub: https://github.com/tyroneross/claude-code-debugger
-  - npm: `@tyroneross/claude-code-debugger`
-- **Claude Code cache mirror:** `~/.claude/plugins/cache/RossLabs-AI-Toolkit/claude-code-debugger/1.7.0/`
+  - npm: `@tyroneross/claude-code-debugger` (package name retained for compatibility)
+- **Plugin name:** `coding-debugger`
+- **CLI aliases:** `coding-debugger`, `claude-code-debugger`
+- **Claude Code cache mirror:** `~/.claude/plugins/cache/RossLabs-AI-Toolkit/coding-debugger/<version>/` after next install
+
+## Key changes in 1.9.0
+
+- Rebranded plugin/display/server name to **Coding Debugger** (`coding-debugger`)
+- Added `coding-debugger` CLI alias while preserving `claude-code-debugger`
+- Renamed MCP server from bare `debugger` to `coding-debugger` to avoid collisions
+- Included `.codex-plugin` in the npm package file list for dual-host installs
+- Removed `natural` from runtime retrieval by using a dependency-free Jaro-Winkler helper, reducing plugin-cache startup fragility
 
 ## Key changes in 1.8.0
 
@@ -30,10 +40,10 @@
 
 | Source | Location | Notes |
 |---|---|---|
-| **Authoritative** | `~/Desktop/git-folder/claude-code-debugger/.claude-plugin/plugin.json` | Local dev — canonical, always newest |
+| **Authoritative** | `~/dev/git-folder/claude-code-debugger/.claude-plugin/plugin.json` | Local dev — canonical, always newest |
 | GitHub | github.com/tyroneross/claude-code-debugger | Public mirror, tracks local |
 | npm | `@tyroneross/claude-code-debugger` | Published releases (may lag) |
-| Cache mirror | `~/.claude/plugins/cache/RossLabs-AI-Toolkit/claude-code-debugger/<version>/` | What Claude Code actually loads at runtime — cross-check against registry |
+| Cache mirror | `~/.claude/plugins/cache/RossLabs-AI-Toolkit/coding-debugger/<version>/` | What Claude Code actually loads at runtime — cross-check against registry |
 
 When "latest" is ambiguous, trust **local dev** first, then cross-check the registry at `~/.claude/plugins/installed_plugins.json`.
 
@@ -42,7 +52,7 @@ When "latest" is ambiguous, trust **local dev** first, then cross-check the regi
 1. Bump `version` in `.claude-plugin/plugin.json`
 2. Update the version stamp in `CLAUDE.md` (line 1 HTML comment)
 3. Update this file's `Current` section + add an entry to `Version history` below
-4. Delete older cache entries: `rm -rf ~/.claude/plugins/cache/RossLabs-AI-Toolkit/claude-code-debugger/<old-version>/`
+4. Delete older cache entries: `rm -rf ~/.claude/plugins/cache/RossLabs-AI-Toolkit/{claude-code-debugger,coding-debugger}/<old-version>/`
 5. Back up, then update `~/.claude/plugins/installed_plugins.json` → `installPath` + `version` for every entry of this plugin
 6. Run `/reload-plugins` in Claude Code
 7. Commit `plugin.json`, `CLAUDE.md`, `VERSIONING.md` together in a single commit
@@ -51,6 +61,7 @@ When "latest" is ambiguous, trust **local dev** first, then cross-check the regi
 
 ## Version history
 
+- **1.9.0** (2026-06-04): Rebrand to Coding Debugger, collision-safe MCP server name, dual CLI alias, Codex package surface, dependency-free fuzzy retrieval helper.
 - **1.8.0** (2026-04-05): New `lesson` CLI subcommand for per-repo LESSONS-LEARNED.md management. Complements incident memory with proactive pattern library.
 - **1.7.0** (prior): Tiered storage, verdict-first retrieval, compound IDs, auto-archival, context compression. Prompt hooks stripped 2026-04-04 (hint script removed; Stop `mine --days 1 --store` command retained).
 - **1.3.0** (prior): Single-file incident store, basic retrieval. Cached directory deleted 2026-04-04 during drift cleanup.
