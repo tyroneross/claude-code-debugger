@@ -36,3 +36,4 @@ coverage/
 .claude/memory/
 .claude-code-debugger/
 .bookmark/
+.archive/

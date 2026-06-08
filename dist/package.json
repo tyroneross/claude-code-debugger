@@ -1,7 +1,7 @@
 {
     "name": "@tyroneross/claude-code-debugger",
     "version": "1.9.0",
-    "description": "Coding Debugger: AI-assisted debugging memory with tiered storage, verdict-first responses, root-cause workflows, context compression, and parallel assessment",
+    "description": "Coding Debugger for Claude Code and Codex: debugging memory, verdict-first retrieval, root-cause workflows, context compression, and parallel assessment.",
     "main": "dist/src/index.js",
     "types": "dist/src/index.d.ts",
     "exports": {
@@ -42,6 +42,8 @@
         "memory",
         "coding-debugger",
         "claude-code",
+        "codex",
+        "agent-tools",
         "incident-tracking",
         "pattern-recognition",
         "developer-tools",
@@ -51,7 +53,7 @@
         "sentry",
         "langchain"
     ],
-    "author": "Tyrone Ross",
+    "author": "Tyrone Ross, Jr <46267523+tyroneross@users.noreply.github.com>",
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
@@ -78,5 +80,9 @@
         "darwin",
         "linux",
         "win32"
-    ]
+    ],
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    }
 }

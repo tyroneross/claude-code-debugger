@@ -1,7 +1,7 @@
 {
   "name": "coding-debugger",
   "version": "1.9.0",
-  "description": "AI-assisted debugging memory for coding agents with verdict-based retrieval, pattern extraction, deep root-cause workflows, and parallel domain assessment.",
+  "description": "Coding Debugger for coding agents with debugging memory, verdict-based retrieval, pattern extraction, root-cause workflows, and parallel domain assessment.",
   "author": {
     "name": "Tyrone Ross",
     "email": "tyrone@rosslabs.ai",
