@@ -1,6 +1,5 @@
 {
   "name": "coding-debugger",
-  "version": "1.9.0",
   "description": "Coding Debugger for Codex and other coding agents with debugging memory, verdict-based retrieval, pattern extraction, root-cause workflows, and parallel domain assessment.",
   "author": {
     "name": "Tyrone Ross",
