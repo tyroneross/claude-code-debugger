@@ -1,0 +1,10 @@
+{
+  "name": "coding-debugger",
+  "version": "1.9.0",
+  "plugins": [
+    {
+      "name": "coding-debugger",
+      "source": "."
+    }
+  ]
+}
