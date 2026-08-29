@@ -1,0 +1,16 @@
+{
+  "description": "Codex-shaped mirror of hooks/hooks.json (the Claude Code plugin hook). Codex's plugin.json schema has no `hooks` key — a Codex plugin install does not auto-wire hooks the way a Claude Code plugin does. This file is REFERENCE WIRING only: a Codex host activates it by merging this `Stop` entry into the project's own .codex/hooks.json at the repo root (same JSON shape Codex reads for project-level hooks). See AGENTS.md `## Hooks` for the full explanation and the merge command.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx @tyroneross/claude-code-debugger mine --days 1 --store 2>/dev/null || true",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
+  }
+}
