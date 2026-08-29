@@ -310,10 +310,10 @@ Run the test suite:
 
 ```bash
 # Quality score validation
-npx ts-node test-quality-score.ts
+npx ts-node scripts/archive/test-quality-score.ts
 
 # Interactive flow (requires user input)
-npx ts-node test-interactive.ts
+npx ts-node scripts/archive/test-interactive.ts
 ```
 
 ## Performance

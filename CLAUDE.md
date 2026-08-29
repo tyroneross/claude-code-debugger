@@ -97,3 +97,17 @@ This project follows patterns proven in Interface Built Right and NavGator:
 4. **Batch I/O** — cap concurrent file operations at 50
 5. **Compound IDs** — encode type/category in IDs for self-documentation
 6. **Context compression** — minimize token usage when injecting into LLM context
+
+<!-- debugger-dynamic-start -->
+## Debugging Memory (Auto-Active)
+
+**Trigger:** Call `/debugger "symptom"` BEFORE investigating when you see:
+- Error messages, stack traces, test failures
+- "fix", "debug", "broken", "not working" from user
+- Editing a file listed in Hot Files below
+
+**Memory State:** 4 incidents | 0 patterns | Quality: 2E/2G/0F
+**Categories:** api(1), error-handling(1), config(1), react-hooks(1)
+**Hot files:** `lib/logger.ts`(2), `app/api/users/route.ts`(1), `components/TrendingTopics.tsx`(1)
+**Progressive:** Use `/debugger-detail <ID>` to drill into any match
+<!-- debugger-dynamic-end -->
