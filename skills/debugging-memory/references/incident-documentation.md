@@ -145,7 +145,7 @@ Optional validation checkpoints for higher-stakes fixes.
 
 - **tags**: Searchable keywords for categorization
 - **files_changed**: All modified files
-- **agent_used**: Which Claude agent fixed this
+- **agent_used**: Which AI coding agent fixed this
 
 ## Quality Scoring
 
@@ -163,9 +163,9 @@ The memory system calculates a quality score (0-100%) based on:
 - 50-74%: Good - useful but may need verification
 - <50%: Fair - stored but lower priority in results
 
-## How Claude Code Stores Incidents
+## How the Coding Agent Stores Incidents
 
-Claude Code should **directly write JSON files** to store incidents. No CLI command needed.
+The coding agent should **directly write JSON files** to store incidents. No CLI command needed.
 
 ### Step-by-Step
 

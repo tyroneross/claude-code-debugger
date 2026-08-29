@@ -183,5 +183,3 @@ An incident is considered incomplete if:
 ## See Also
 
 - [README.md](./README.md) - Main documentation
-- [SETUP-COMPLETE.md](./SETUP-COMPLETE.md) - Setup guide
-- [PACKAGE-SUMMARY.md](./PACKAGE-SUMMARY.md) - API reference
