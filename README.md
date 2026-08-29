@@ -2,7 +2,7 @@
 
 > Never solve the same bug twice
 
-AI-assisted debugging memory for coding agents. It learns from past incidents, classifies similar failures, and supports deep root-cause workflows for hard fixes.
+Coding Debugger — debugging memory for AI coding agents; works with Claude Code and Codex. It learns from past incidents, classifies similar failures, and supports deep root-cause workflows for hard fixes.
 
 ## Features
 
@@ -47,29 +47,29 @@ AI-assisted debugging memory for coding agents. It learns from past incidents, c
 
 ```bash
 # npm
-npm install @tyroneross/claude-code-debugger
+npm install @tyroneross/coding-debugger
 
 # pnpm
-pnpm add @tyroneross/claude-code-debugger
+pnpm add @tyroneross/coding-debugger
 
 # yarn
-yarn add @tyroneross/claude-code-debugger
+yarn add @tyroneross/coding-debugger
 ```
 
 ### Global Installation (for CLI access anywhere)
 
 ```bash
 # npm
-npm install -g @tyroneross/claude-code-debugger
+npm install -g @tyroneross/coding-debugger
 
 # pnpm
-pnpm add -g @tyroneross/claude-code-debugger
+pnpm add -g @tyroneross/coding-debugger
 
 # yarn
-yarn global add @tyroneross/claude-code-debugger
+yarn global add @tyroneross/coding-debugger
 ```
 
-The package name stays `@tyroneross/claude-code-debugger` for compatibility. The preferred CLI binary is `coding-debugger`; `claude-code-debugger` remains as an alias.
+The package name is `@tyroneross/coding-debugger`. The preferred CLI binary is `coding-debugger`; `claude-code-debugger` remains available as a compatibility alias for existing installs.
 
 ### Troubleshooting Installation
 
@@ -118,46 +118,46 @@ After installation, these slash commands are automatically available in Claude C
 
 ```bash
 # Check current configuration
-claude-code-debugger config
+coding-debugger config
 
 # Show memory statistics
-claude-code-debugger status
+coding-debugger status
 
 # Search memory before debugging
-claude-code-debugger debug "Search filters not working"
+coding-debugger debug "Search filters not working"
 
 # Search for specific incidents
-claude-code-debugger search "react hooks"
+coding-debugger search "react hooks"
 
 # Drill into a specific incident or pattern
-claude-code-debugger detail INC_REACT_20260215_001
+coding-debugger detail INC_REACT_20260215_001
 
 # Record whether a suggested fix worked
-claude-code-debugger outcome INC_REACT_20260215_001 worked
+coding-debugger outcome INC_REACT_20260215_001 worked
 
 # Suggest patterns to extract
-claude-code-debugger patterns
+coding-debugger patterns
 
 # Extract and store patterns
-claude-code-debugger patterns --extract
+coding-debugger patterns --extract
 
 # Mine audit trail for missed incidents
-claude-code-debugger mine --days 30
+coding-debugger mine --days 30
 
 # Store mined incidents
-claude-code-debugger mine --days 30 --store
+coding-debugger mine --days 30 --store
 
 # Rebuild keyword index (after manual edits)
-claude-code-debugger rebuild-index
+coding-debugger rebuild-index
 
 # Batch operations
-claude-code-debugger batch --incomplete              # Review incomplete incidents
-claude-code-debugger batch --extract-patterns        # Extract patterns from existing data
-claude-code-debugger batch --cleanup --older-than 90 # Clean up old sessions
+coding-debugger batch --incomplete              # Review incomplete incidents
+coding-debugger batch --extract-patterns        # Extract patterns from existing data
+coding-debugger batch --cleanup --older-than 90 # Clean up old sessions
 
 # Remove debugger from this project
-claude-code-debugger uninstall
-claude-code-debugger uninstall --remove-data  # Also delete memory data
+coding-debugger uninstall
+coding-debugger uninstall --remove-data  # Also delete memory data
 ```
 
 ### Programmatic Usage
@@ -184,7 +184,7 @@ import {
   // Pattern & mining
   extractPatterns,
   mineAuditTrail
-} from '@tyroneross/claude-code-debugger';
+} from '@tyroneross/coding-debugger';
 
 // Progressive search — one-liner results, drill into details on demand
 const progressive = await checkMemoryProgressive("API returns 500 on login");
@@ -232,14 +232,14 @@ await recordOutcome({
 
 ```bash
 # Use shared mode for this command
-claude-code-debugger status --shared
+coding-debugger status --shared
 
 # Set shared mode via environment variable
 export CLAUDE_MEMORY_MODE=shared
-claude-code-debugger status
+coding-debugger status
 
 # In code
-import { getConfig } from '@tyroneross/claude-code-debugger';
+import { getConfig } from '@tyroneross/coding-debugger';
 
 const config = getConfig({
   storageMode: 'shared'
@@ -302,9 +302,9 @@ Recover incidents from `.claude/audit/` files:
 Check memory for similar incidents before debugging.
 
 ```bash
-claude-code-debugger debug "Search filters not working"
-claude-code-debugger debug "API timeout" --threshold 0.6
-claude-code-debugger debug "Infinite render loop" --shared
+coding-debugger debug "Search filters not working"
+coding-debugger debug "API timeout" --threshold 0.6
+coding-debugger debug "Infinite render loop" --shared
 ```
 
 **Options:**
@@ -316,8 +316,8 @@ claude-code-debugger debug "Infinite render loop" --shared
 Show memory system statistics.
 
 ```bash
-claude-code-debugger status
-claude-code-debugger status --shared
+coding-debugger status
+coding-debugger status --shared
 ```
 
 ### `config`
@@ -325,7 +325,7 @@ claude-code-debugger status --shared
 Display current configuration.
 
 ```bash
-claude-code-debugger config
+coding-debugger config
 ```
 
 ### `search <query>`
@@ -333,8 +333,8 @@ claude-code-debugger config
 Search memory for incidents matching a query.
 
 ```bash
-claude-code-debugger search "react hooks"
-claude-code-debugger search "API error" --threshold 0.6
+coding-debugger search "react hooks"
+coding-debugger search "API error" --threshold 0.6
 ```
 
 **Options:**
@@ -347,10 +347,10 @@ Suggest or extract patterns from incidents.
 
 ```bash
 # Preview patterns that could be extracted
-claude-code-debugger patterns
+coding-debugger patterns
 
 # Extract and store patterns
-claude-code-debugger patterns --extract
+coding-debugger patterns --extract
 ```
 
 **Options:**
@@ -363,10 +363,10 @@ Mine audit trail for incidents not manually stored.
 
 ```bash
 # Preview what would be mined
-claude-code-debugger mine --days 30
+coding-debugger mine --days 30
 
 # Mine and store incidents
-claude-code-debugger mine --days 30 --store
+coding-debugger mine --days 30 --store
 ```
 
 **Options:**
@@ -379,8 +379,8 @@ claude-code-debugger mine --days 30 --store
 Load full details for a specific incident or pattern.
 
 ```bash
-claude-code-debugger detail INC_REACT_20260215_001
-claude-code-debugger detail PTN_API_ERROR
+coding-debugger detail INC_REACT_20260215_001
+coding-debugger detail PTN_API_ERROR
 ```
 
 ### `outcome <incident_id> <result>`
@@ -388,9 +388,9 @@ claude-code-debugger detail PTN_API_ERROR
 Record whether a suggested fix worked.
 
 ```bash
-claude-code-debugger outcome INC_API_20260215_001 worked
-claude-code-debugger outcome INC_API_20260215_001 failed
-claude-code-debugger outcome INC_API_20260215_001 modified
+coding-debugger outcome INC_API_20260215_001 worked
+coding-debugger outcome INC_API_20260215_001 failed
+coding-debugger outcome INC_API_20260215_001 modified
 ```
 
 ### `session-context`
@@ -398,7 +398,7 @@ claude-code-debugger outcome INC_API_20260215_001 modified
 Output compact JSON context for hooks. Used by the SessionStart hook to inject memory state at the beginning of each Claude session.
 
 ```bash
-claude-code-debugger session-context
+coding-debugger session-context
 ```
 
 ### `check-file <filepath>`
@@ -406,7 +406,7 @@ claude-code-debugger session-context
 Check if a file has past incidents. Used by the PreToolUse hook to surface relevant history when editing files.
 
 ```bash
-claude-code-debugger check-file src/api/users.ts
+coding-debugger check-file src/api/users.ts
 ```
 
 ### `rebuild-index`
@@ -414,7 +414,7 @@ claude-code-debugger check-file src/api/users.ts
 Rebuild the keyword index from all incidents. Run after manual edits to incident files.
 
 ```bash
-claude-code-debugger rebuild-index
+coding-debugger rebuild-index
 ```
 
 ### `uninstall`
@@ -423,13 +423,13 @@ Remove debugger integration from the current project.
 
 ```bash
 # Interactive — confirms before removing
-claude-code-debugger uninstall
+coding-debugger uninstall
 
 # Skip confirmation
-claude-code-debugger uninstall -y
+coding-debugger uninstall -y
 
 # Also delete all memory data (incidents, patterns, sessions)
-claude-code-debugger uninstall --remove-data
+coding-debugger uninstall --remove-data
 ```
 
 Removes: hooks from `.claude/settings.json`, slash commands from `.claude/commands/`, debugging section from `CLAUDE.md`. Memory data is kept by default so you can reinstall later without losing history.
@@ -524,13 +524,13 @@ import {
   recordOutcome,
   loadOutcomes,
   getOutcomeStats
-} from '@tyroneross/claude-code-debugger';
+} from '@tyroneross/coding-debugger';
 ```
 
 ### Configuration
 
 ```typescript
-import { getConfig, getMemoryPaths } from '@tyroneross/claude-code-debugger';
+import { getConfig, getMemoryPaths } from '@tyroneross/coding-debugger';
 
 const config = getConfig({
   storageMode: 'shared',
@@ -562,7 +562,7 @@ import type {
   ProgressiveMatch,
   KeywordIndex,
   VerdictOutcome
-} from '@tyroneross/claude-code-debugger';
+} from '@tyroneross/coding-debugger';
 ```
 
 ## Directory Structure
@@ -595,7 +595,7 @@ your-project/
 └── MEMORY_SUMMARY.md
 ```
 
-## Integration with Claude Code
+## Integration with Coding Agents
 
 ### Prompt for Agents
 
@@ -603,12 +603,12 @@ Include in your agent prompts:
 
 ```markdown
 Before debugging, check memory:
-- Run: `npx claude-code-debugger debug "symptom description"`
+- Run: `npx coding-debugger debug "symptom description"`
 - Review similar incidents and patterns
 - Apply known solutions if confidence is high
 
 After fixing:
-- Store incident with: `npx claude-code-debugger store`
+- Store incident with: `npx coding-debugger store`
 - Or use programmatic API from TypeScript
 ```
 
@@ -618,14 +618,14 @@ Set up periodic audit mining:
 
 ```bash
 # Weekly cron job to mine audit trail
-0 0 * * 0 cd /path/to/project && npx claude-code-debugger mine --days 7 --store
+0 0 * * 0 cd /path/to/project && npx coding-debugger mine --days 7 --store
 ```
 
 ## Best Practices
 
 ### 1. Always Check Before Debugging
 ```bash
-claude-code-debugger debug "symptom" --threshold 0.7
+coding-debugger debug "symptom" --threshold 0.7
 ```
 
 ### 2. Store Complete Incidents
@@ -638,13 +638,13 @@ Include all fields for maximum reuse:
 ### 3. Extract Patterns Regularly
 ```bash
 # Weekly pattern extraction
-claude-code-debugger patterns --extract
+coding-debugger patterns --extract
 ```
 
 ### 4. Mine Audit Trail
 ```bash
 # Monthly audit mining
-claude-code-debugger mine --days 30 --store
+coding-debugger mine --days 30 --store
 ```
 
 ### 5. Use Shared Mode for Common Issues
@@ -667,20 +667,20 @@ This section updates on each `rebuild-index` or session start.
 
 ### Layer 2: Session Start Hook
 
-A command-type hook runs `claude-code-debugger session-context` at the start of each Claude session, outputting compact JSON with memory stats and trigger instructions (~150 tokens).
+A command-type hook runs `coding-debugger session-context` at the start of each Claude session, outputting compact JSON with memory stats and trigger instructions (~150 tokens).
 
 ### Layer 3: File-Aware Editing
 
-A PreToolUse hook checks `claude-code-debugger check-file <path>` when files are edited. If the file has past incidents, relevant IDs and a message are surfaced. Otherwise, zero noise — just `{"ok": true}`.
+A PreToolUse hook checks `coding-debugger check-file <path>` when files are edited. If the file has past incidents, relevant IDs and a message are surfaced. Otherwise, zero noise — just `{"ok": true}`.
 
 ### Outcome Tracking
 
 After a `/debugger` search suggests a fix, you can record whether it actually worked:
 
 ```bash
-claude-code-debugger outcome INC_API_20260215_001 worked
-claude-code-debugger outcome INC_API_20260215_001 failed
-claude-code-debugger outcome INC_API_20260215_001 modified
+coding-debugger outcome INC_API_20260215_001 worked
+coding-debugger outcome INC_API_20260215_001 failed
+coding-debugger outcome INC_API_20260215_001 modified
 ```
 
 This feeds back into pattern success rates, so the system learns which fixes are reliable over time.
@@ -690,7 +690,7 @@ This feeds back into pattern success rates, so the system learns which fixes are
 Remove the debugger from your project cleanly:
 
 ```bash
-claude-code-debugger uninstall
+coding-debugger uninstall
 ```
 
 This removes:
@@ -701,13 +701,13 @@ This removes:
 Your memory data (incidents, patterns, sessions) is **kept by default** so you can reinstall later without losing history. To also remove data:
 
 ```bash
-claude-code-debugger uninstall --remove-data
+coding-debugger uninstall --remove-data
 ```
 
 To skip the confirmation prompt:
 
 ```bash
-claude-code-debugger uninstall -y
+coding-debugger uninstall -y
 ```
 
 ## Benchmark
@@ -783,13 +783,13 @@ This package uses semantic versioning:
 ## Troubleshooting
 
 ### "Cannot find module"
-- Ensure package is installed: `npm list @tyroneross/claude-code-debugger`
+- Ensure package is installed: `npm list @tyroneross/coding-debugger`
 - Check import paths match package exports
 
 ### "No incidents found"
 - Verify memory directory exists
 - Check storage mode (local vs shared)
-- Run `claude-code-debugger status` to see statistics
+- Run `coding-debugger status` to see statistics
 
 ### "Permission denied"
 - Ensure directory permissions for `.claude/memory/`

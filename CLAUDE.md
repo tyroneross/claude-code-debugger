@@ -3,7 +3,7 @@
 
 ## Debugging Memory
 
-This project uses Coding Debugger for debugging memory. The npm package remains `@tyroneross/claude-code-debugger` for compatibility.
+This project uses Coding Debugger for debugging memory. The npm package is `@tyroneross/coding-debugger`; the `claude-code-debugger` CLI binary remains available as a compatibility alias.
 
 **Automatic behavior:**
 - Past debugging sessions are stored and indexed
@@ -71,7 +71,7 @@ For non-trivial bugs, the debug-loop skill provides deep investigation with iter
 
 ## Plugin Development
 
-This project is both an npm package and a Claude Code plugin.
+This project is both an npm package and an AI coding agent plugin (Claude Code and Codex).
 
 **Plugin structure:**
 - `.claude-plugin/plugin.json` - Plugin manifest

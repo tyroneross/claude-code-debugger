@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Neutral rebrand**: completed the identity migration to "Coding Debugger" as a host-agnostic tool that works with Claude Code and Codex. npm package renamed to `@tyroneross/coding-debugger` (the `claude-code-debugger` CLI binary and `@tyroneross/claude-code-debugger` references outside the package name remain as compatibility aliases). README and CLAUDE.md copy swept to neutral phrasing except where content is genuinely Claude-Code-specific (slash commands, plugin marketplace) or Codex-specific. GitHub repository path (`tyroneross/claude-code-debugger`) is unchanged pending a separate repo rename — GitHub's auto-redirect keeps existing links working.
+
 ## [1.4.0] - 2025-12-28
 
 ### Added

@@ -47,7 +47,7 @@ The quality score is calculated based on four dimensions:
 ### Programmatic API
 
 ```typescript
-import { storeIncident, generateIncidentId } from '@tyroneross/claude-code-debugger';
+import { storeIncident, generateIncidentId } from '@tyroneross/coding-debugger';
 
 const incident = {
   incident_id: generateIncidentId(),
@@ -238,10 +238,10 @@ Future CLI enhancement (v1.3.0):
 
 ```bash
 # Auto-trigger interactive mode for incomplete incidents
-npx @tyroneross/claude-code-debugger store --interactive
+npx @tyroneross/coding-debugger store --interactive
 
 # Audit existing incidents and prompt for improvements
-npx @tyroneross/claude-code-debugger audit --improve
+npx @tyroneross/coding-debugger audit --improve
 ```
 
 ## Best Practices
@@ -273,7 +273,7 @@ Target quality scores by use case:
 Run quality audit and re-prompt:
 
 ```typescript
-import { loadIncident, calculateQualityScore, buildIncidentInteractive } from '@tyroneross/claude-code-debugger';
+import { loadIncident, calculateQualityScore, buildIncidentInteractive } from '@tyroneross/coding-debugger';
 
 const incident = await loadIncident('INC_xxx');
 const score = calculateQualityScore(incident);
