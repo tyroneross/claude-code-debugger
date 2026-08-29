@@ -120,7 +120,7 @@ The store tool accepts:
 
 ### Manual Incident Storage (Alternative)
 
-Claude Code can also directly write incident files to `.claude/memory/incidents/` using the Write tool.
+The coding agent can also directly write incident files to `.claude/memory/incidents/` using the Write tool.
 
 **Step 1: Generate incident ID**
 ```

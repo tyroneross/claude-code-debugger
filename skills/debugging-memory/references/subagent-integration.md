@@ -19,7 +19,7 @@ For a subagent to directly access debugging memory, it needs **one of**:
 
 | Access Method | When to Use | Tools Needed |
 |---------------|-------------|--------------|
-| **MCP tools** (preferred) | Agent runs within Claude Code plugin context | MCP tool access |
+| **MCP tools** (preferred) | Agent runs within the plugin's host context | MCP tool access |
 | **CLI fallback** | Agent only has Bash, no MCP access | `Bash` |
 | **Proxy** | Agent has no direct access | None (parent pre-queries) |
 
@@ -277,7 +277,7 @@ any new findings with `/debugger-scan` to capture this session.
 ```markdown
 User: "The checkout is broken - showing wrong totals and timing out"
 
-Claude Code:
+Coding agent:
 1. Searches memory via `debugger search` MCP tool: "checkout wrong totals timeout"
    - Found: INC_20241210_checkout_math (confidence: 0.72)
    - Found: PTN_timeout_database (confidence: 0.58)
