@@ -1,5 +1,5 @@
 {
-    "name": "@tyroneross/claude-code-debugger",
+    "name": "@tyroneross/coding-debugger",
     "version": "1.9.0",
     "description": "Coding Debugger for Claude Code and Codex: debugging memory, verdict-first retrieval, root-cause workflows, context compression, and parallel assessment.",
     "main": "dist/src/index.js",

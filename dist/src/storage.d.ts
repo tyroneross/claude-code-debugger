@@ -40,12 +40,6 @@ export declare function loadAllPatterns(config?: MemoryConfig): Promise<Pattern[
  * Validate incident structure
  */
 export declare function validateIncident(incident: Incident): VerificationResult;
-/**
- * Generate incident ID with optional category prefix for self-documenting filenames
- *
- * Without category: INC_20250215_143022_a1b2
- * With category:    INC_API_20250215_143022_a1b2
- */
 export declare function generateIncidentId(category?: string): string;
 /**
  * Generate pattern ID
