@@ -546,11 +546,18 @@ async function runTests() {
   });
 
   await test('generateIncidentId uniqueness', () => {
+    // 10,000, not 100. At 100 this assertion passed 99.71% of the time against a
+    // generator that genuinely collided (measured: 59 failures in 20,000 trials),
+    // so it certified the defect far more often than it caught it. At 10,000 the
+    // old 4-character Math.random suffix collides essentially always, which makes
+    // this a gate rather than a coin flip. 10,000 is below the 46,656 process
+    // sequence period, so a correct generator is unique here by construction.
+    const N = 10000;
     const ids = new Set();
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < N; i++) {
       ids.add(lib.generateIncidentId());
     }
-    assertEqual(ids.size, 100, 'All 100 IDs should be unique');
+    assertEqual(ids.size, N, `All ${N} IDs should be unique`);
   });
 
   await test('loadIncident with nonexistent ID', async () => {

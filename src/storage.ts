@@ -8,6 +8,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { randomBytes } from 'crypto';
 import type { Incident, Pattern, StorageOptions, VerificationResult, MemoryConfig, MemoryIndex, IncidentLogEntry, KeywordIndex, VerdictOutcome } from './types';
 import { getMemoryPaths } from './config';
 import { calculateQualityScore } from './quality';
@@ -294,14 +295,34 @@ export function validateIncident(incident: Incident): VerificationResult {
 /**
  * Generate incident ID with optional category prefix for self-documenting filenames
  *
- * Without category: INC_20250215_143022_a1b2
- * With category:    INC_API_20250215_143022_a1b2
+ * Without category: INC_20250215_143022_a1b2c3004
+ * With category:    INC_API_20250215_143022_a1b2c3004
+ *
+ * The trailing suffix is 6 hex characters of crypto entropy plus a 3-character
+ * base36 process sequence. Existing shorter IDs still load: isValidIncidentId
+ * accepts any /^INC_[\w\-]+$/ and nothing parses the suffix by length.
  */
+// Monotonic within this process. An incident ID is a FILENAME, so two incidents
+// that collide do not merely share a label -- the second overwrites the first and
+// the debugging record is gone. The old suffix was 4 base36 characters of
+// Math.random (1,679,616 values), which by the birthday bound collides in 0.29% of
+// any 100 IDs generated inside the same second; measured over 20,000 trials, 59
+// failed. This counter makes a collision structurally impossible for 46,656
+// consecutive IDs from one process, and randomBytes covers concurrent processes
+// that share a second.
+let incidentSequence = 0;
+
+function incidentSuffix(): string {
+  incidentSequence = (incidentSequence + 1) % 46656; // 36^3
+  const seq = incidentSequence.toString(36).padStart(3, '0');
+  return `${randomBytes(3).toString('hex')}${seq}`;
+}
+
 export function generateIncidentId(category?: string): string {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = now.toISOString().slice(11, 19).replace(/:/g, '');
-  const random = Math.random().toString(36).substring(2, 6);
+  const random = incidentSuffix();
 
   if (category) {
     const cleanCat = category.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
