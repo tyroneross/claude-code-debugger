@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1](https://github.com/tyroneross/claude-code-debugger/compare/coding-debugger-v1.9.0...coding-debugger-v1.9.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **release:** put last-release-sha where release-please actually reads it ([4f6057e](https://github.com/tyroneross/claude-code-debugger/commit/4f6057e4f4b1be8509e2089f4f50739e897387e8))
+* **storage:** stop incident IDs colliding and overwriting each other ([44a0b26](https://github.com/tyroneross/claude-code-debugger/commit/44a0b2673e5e7a64b3d16a17d0e19c9a53384773))
+
 ## [Unreleased]
 
 ### Changed
