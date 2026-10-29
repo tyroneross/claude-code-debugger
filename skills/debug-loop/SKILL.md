@@ -23,12 +23,14 @@ Before entering the loop, assess whether it's warranted. The trigger is the **ve
 - Agent context: minimum needed per job. Pass symptom + relevant findings, not full conversation history
 - Load convergence rules reference on demand only when entering iteration
 
+For a repair or restart crossing component boundaries, read [change and failure isolation](references/change-isolation.md). Verify the shared cause and affected callers; a past incident or a small diff does not establish that the current boundary is adequate.
+
 ## Phase 1: INVESTIGATE — Gather Evidence and Trace Root Cause
 
 **Goal**: Understand what's actually failing and why, not just what it looks like.
 
 1. **Search debugging memory** — use the debugger `search` MCP tool with the symptom. Note any related incidents
-2. **Reproduce the issue** — identify exact steps, commands, or conditions that trigger the bug
+2. **Reproduce the issue when feasible** — identify exact steps, commands, or conditions that trigger the bug. If the original environment is unavailable, record the causal evidence and limits; distinguish a controlled regression case from reproduction of the original incident.
 3. **Deploy root-cause-investigator agent** — pass the symptom and reproduction steps for causal tree analysis. The agent explores multiple branches (not a single chain), prioritizes by evidence strength, and prunes with evidence
 4. **Research gate** — if the investigator flags unfamiliar error codes, library behavior, or version-specific issues:
    - Search externally (WebSearch, Context7, or documentation)
@@ -54,10 +56,10 @@ Before entering the loop, assess whether it's warranted. The trigger is the **ve
 
 ## Phase 3: FIX — Implement Targeted Change
 
-**Goal**: Make the minimal change that addresses the hypothesized root cause.
+**Goal**: Make the simplest adequate change that addresses the causal mechanism across affected supported paths.
 
-1. **Fix the root cause, not the symptom** — if you're adding a null check instead of fixing why something is null, you're fixing the symptom
-2. **Minimal changes** — touch only what's needed. Don't refactor, don't improve, don't clean up
+1. **Compare a symptom patch with a causal repair** — trace the existing state owner and affected callers before adding a case-specific exception. A null guard can be correct at a boundary that permits missing data; establish the contract rather than treating every guard as a symptom patch.
+2. **Keep changes proportional** — repair the shared mechanism where needed, preserving supported callers and valid counterexamples. Avoid unrelated cleanup or speculative frameworks; minimum adequate means causal coverage, not the fewest changed lines.
 3. **Note exactly what was changed and why** — this becomes the evidence trail
 
 **Output**: List of changes with rationale
@@ -72,13 +74,13 @@ Before entering the loop, assess whether it's warranted. The trigger is the **ve
 4. **Check for regressions** — run broader test suite if available
 5. **Verify related symptom predictions** — are the predicted effects present?
 
-Every verification step must produce evidence: command output, test results, or observable behavior. "It should work" is not evidence.
+Each applicable verification step needs evidence: command output, test results, or observable behavior. Mark a genuinely inapplicable check N/A with its scope reason, or a missing required environment/check UNAVAILABLE with the gap. Neither is PASS. "It should work" is not evidence.
 
 **Output**: Evidence for each verification step
 
 ## Phase 5: SCORE — Evaluate Against Criteria
 
-**Goal**: Objective pass/fail assessment with evidence.
+**Goal**: Evidence-based status for each criterion.
 
 Score against these criteria:
 
@@ -90,12 +92,13 @@ Score against these criteria:
 | 4 | Root cause addressed | Code review | Fix targets root cause, not symptom | Diff + reasoning |
 | 5 | Hypothesis confirmed | Prediction test | Prediction test passes | Test output |
 
-**All criteria must have evidence.** No criterion marked PASS without proof.
+**Every criterion needs an evidence status.** Use PASS with observed evidence, FAIL for an observed unmet criterion, N/A only when genuinely inapplicable to the approved scope, and UNAVAILABLE when required verification cannot be performed. No criterion is PASS without proof, and N/A cannot waive a required check.
 
-**If any criterion fails** → enter iteration (Phase 6 rules apply)
-**If all criteria pass** → proceed to critique (Phase 6)
+**If a criterion fails and repair is feasible** → enter iteration (Phase 6 rules apply).
+**If all applicable criteria pass, with justified N/A where appropriate** → proceed to critique (Phase 6).
+**If required verification is unavailable** → finish independent authorized work, then report bounded results and remaining gaps; do not repeat code changes to satisfy a missing environment or claim full verification.
 
-**Output**: Scorecard with pass/fail per criterion and evidence
+**Output**: Scorecard with status per criterion, evidence or the specific limitation
 
 ## Phase 6: CRITIQUE — Pressure-Test Before Declaring Done
 
@@ -131,11 +134,11 @@ Every item in the report gets one marker:
 
 ### Report Contents
 
-1. **Verdict**: Fixed (all criteria pass + critique approved) or Unresolved (iteration limit hit)
+1. **Verdict**: Fixed within scope when all applicable criteria pass, any N/A is justified, and critique approves. Report partial verification when required evidence is unavailable; report unresolved when failures remain or the iteration limit is reached. Neither partial nor unresolved means fully verified.
 2. **Root Cause**: The identified cause with evidence level
 3. **Causal Tree**: The investigation path — confirmed branches, pruned branches with rejection evidence, any multi-causal findings
 4. **Fix Applied**: What was changed, with rationale
-5. **Scorecard**: Final pass/fail per criterion with evidence
+5. **Scorecard**: Final status per criterion with evidence or a justified N/A/UNAVAILABLE reason
 6. **Research Used**: What was searched externally, what was found, what sources
 7. **Iteration History** (if >1 iteration): What was tried, what failed, what changed between iterations
 8. **Remaining Gaps**: Anything marked ⚠️ or ❓
@@ -152,9 +155,9 @@ When any criterion fails or the critique is CHALLENGED, iterate:
 
 1. **Diagnose why the criterion failed** — don't blind retry
 2. **Revise the hypothesis** if verification disproved it
-3. **Create targeted fix plan** for failed criteria only
+3. **Create a targeted fix plan** for the failed mechanism and affected criteria
 4. **Execute fix**
-5. **Re-verify ONLY failed criteria** — don't re-run passing checks
+5. **Re-verify failed and affected checks** — rerun previously passing checks whose evidence the new change can invalidate. Retain unrelated passing evidence only when its source and assumptions remain applicable.
 6. **Re-score and re-critique**
 
 ### Convergence Detection
@@ -189,7 +192,7 @@ Write iteration state to `.claude-code-debugger/debug-loop/state.json`:
   "scorecard": [
     {
       "criterion": "symptom_resolved",
-      "result": "PASS | FAIL",
+      "result": "PASS | FAIL | N/A | UNAVAILABLE",
       "evidence": "summary"
     }
   ],
@@ -199,19 +202,6 @@ Write iteration state to `.claude-code-debugger/debug-loop/state.json`:
 ```
 
 Create the directory with `mkdir -p .claude-code-debugger/debug-loop/` before writing.
-
-## Process Flow
-
-```
-MEMORY SEARCH → INVESTIGATE → HYPOTHESIZE → FIX → VERIFY → SCORE
-                                                       ↓
-                                                  All pass? ──yes──→ CRITIQUE ──approved──→ REPORT
-                                                       ↓                  ↓
-                                                      no            challenged
-                                                       ↓                  ↓
-                                                  ITERATE ←──────────────┘
-                                                 (up to 5x)
-```
 
 ## Anti-Patterns to Avoid
 
