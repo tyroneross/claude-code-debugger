@@ -5,7 +5,7 @@
 Successfully implemented Feature 1: Auto-Pattern Extraction for claude-code-debugger v1.2.0. The feature automatically extracts reusable patterns when storing incidents if 3+ similar incidents are detected.
 
 **Status**: ✅ COMPLETE
-**Working Directory**: /Users/tyroneross/Desktop/Git Folder/claude-code-debugger
+**Working Directory**: <repos-root>/claude-code-debugger
 **Validation**: Tested with 40 real incidents from atomize-news project
 **Result**: 2-4 patterns successfully extracted
 
@@ -92,7 +92,7 @@ export { extractPatterns, suggestPatterns, autoExtractPatternIfReady } from './p
 ### Test Environment
 - **Source**: atomize-news project incidents
 - **Total incidents**: 40
-- **Incident path**: `/Users/tyroneross/Desktop/Git Folder/atomize-news/.claude/memory/incidents/`
+- **Incident path**: `<repos-root>/atomize-news/.claude/memory/incidents/`
 - **Test script**: `test-auto-extraction.ts`
 
 ### Incident Distribution by Category

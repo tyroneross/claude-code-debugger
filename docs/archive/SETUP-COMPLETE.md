@@ -15,7 +15,7 @@
 
 ### 2. Push Your Code
 ```bash
-cd "/Users/tyroneross/Desktop/Git Folder/claude-code-debugger"
+cd "<repos-root>/claude-code-debugger"
 git remote add origin https://github.com/tyroneross/claude-code-debugger.git
 git branch -M main
 git push -u origin main

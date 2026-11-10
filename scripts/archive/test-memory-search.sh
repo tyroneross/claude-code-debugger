@@ -6,7 +6,7 @@ echo ""
 
 # Test 1: Direct execution from package directory
 echo "📍 Test 1: Running from package directory"
-cd "/Users/tyroneross/Desktop/Git Folder/claude-code-debugger"
+cd "${REPOS_ROOT:-$HOME/dev}/claude-code-debugger"
 echo "Current directory: $(pwd)"
 echo ""
 
@@ -16,7 +16,7 @@ echo ""
 
 # Test 2: Using npx from atomize-news directory
 echo "📍 Test 2: Running via npx from atomize-news"
-cd "/Users/tyroneross/Desktop/Git Folder/atomize-news"
+cd "${REPOS_ROOT:-$HOME/dev}/atomize-news"
 echo "Current directory: $(pwd)"
 echo ""
 

@@ -37,10 +37,10 @@ Coding Debugger — debugging memory for AI coding agents; works with Claude Cod
 
 ```bash
 # Add the marketplace
-/plugin marketplace add tyroneross/claude-code-debugger
+/plugin marketplace add tyroneross/RossLabs-AI-Toolkit
 
 # Install the plugin
-/plugin install coding-debugger@claude-code-debugger
+/plugin install coding-debugger@rosslabs-ai-toolkit
 ```
 
 ### Via npm (includes CLI and automatic slash command setup)

@@ -1,4 +1,4 @@
-<!-- Plugin: coding-debugger · Version: 1.9.0 · Source of truth: local (~/dev/git-folder/claude-code-debugger) -->
+<!-- Plugin: coding-debugger · Version: 1.9.0 · Source of truth: https://github.com/tyroneross/claude-code-debugger -->
 <!-- Before any commit, version bump, or major change, read ./VERSIONING.md. Update it on version bumps. -->
 
 ## Debugging Memory

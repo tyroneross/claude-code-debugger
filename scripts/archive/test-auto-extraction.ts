@@ -4,6 +4,8 @@
  * Tests the new auto-extraction feature with atomize-news incidents
  */
 
+import * as os from 'os';
+import * as path from 'path';
 import { loadAllIncidents, getMemoryStats } from './src/storage';
 import { autoExtractPatternIfReady } from './src/pattern-extractor';
 import { getConfig } from './src/config';
@@ -15,7 +17,7 @@ async function testAutoExtraction() {
   // Use atomize-news memory path directly
   const config = {
     storageMode: 'local' as const,
-    memoryPath: '/Users/tyroneross/Desktop/Git Folder/atomize-news/.claude/memory',
+    memoryPath: process.env.MEMORY_PATH || path.join(process.env.REPOS_ROOT || path.join(os.homedir(), 'dev'), 'atomize-news', '.claude', 'memory'),
     autoMine: false,
     defaultSimilarityThreshold: 0.7,
     defaultMaxResults: 5
